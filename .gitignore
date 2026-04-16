@@ -6,6 +6,7 @@ oc/data_reset_snapshot_*.txt
 # dependencies/build artifacts
 **/node_modules/
 oc/app/runtime/
+dist/
 
 # secrets/temp
 .env

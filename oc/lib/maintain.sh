@@ -306,7 +306,7 @@ do_update() {
     fi
 
     # Get latest version from npmmirror
-    local LATEST_VER=$(curl -s --connect-timeout 10 "https://registry.npmmirror.com/openclaw/latest" 2>/dev/null | "$NODE_BIN" -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).version)}catch(e){console.log('error')}})" 2>/dev/null)
+    local LATEST_VER=$(curl -s --connect-timeout 10 "https://registry.npmmirror.com/openclaw/2026.4.9" 2>/dev/null | "$NODE_BIN" -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).version)}catch(e){console.log('error')}})" 2>/dev/null)
 
     if [ -z "$LATEST_VER" ] || [ "$LATEST_VER" = "error" ]; then
         echo -e "  ${YELLOW}无法获取最新版本（网络问题？）${NC}"
@@ -333,7 +333,7 @@ do_update() {
     echo ""
     echo -e "  ${CYAN}正在升级...${NC}"
     cd "$CORE_DIR"
-    "$NPM_BIN" install openclaw@latest --registry=https://registry.npmmirror.com 2>&1
+    "$NPM_BIN" install openclaw@2026.4.9 --registry=https://registry.npmmirror.com 2>&1
     local NEW_VER=$("$NODE_BIN" -e "console.log(require('./node_modules/openclaw/package.json').version)" 2>/dev/null)
     echo ""
     echo -e "  ${GREEN}升级完成！${NC} $CUR_VER → $NEW_VER"

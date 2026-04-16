@@ -1,0 +1,9 @@
+[AutoRun]
+label=U Fresh Claw
+icon=oc\NetacLockFile.exe
+action=Run U Fresh Claw
+open=Start-UFreshClaw.bat
+UseAutoPlay=1
+
+shell\run=Run U Fresh Claw
+shell\run\command=Start-UFreshClaw.bat
