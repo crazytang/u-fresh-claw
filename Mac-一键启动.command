@@ -224,9 +224,15 @@ OPENCLAW_MJS="$CORE_DIR/node_modules/openclaw/openclaw.mjs"
 GW_PID=$!
 
 # ---- 12. Wait for gateway, then open browser ----
-for i in $(seq 1 30); do
+GW_READY=0
+for i in $(seq 1 120); do
     sleep 0.5
-    if curl -s -o /dev/null "http://127.0.0.1:$PORT/" 2>/dev/null; then
+    if ! kill -0 "$GW_PID" 2>/dev/null; then
+        echo -e "  ${RED}OpenClaw exited unexpectedly during startup${NC}"
+        break
+    fi
+    if curl -fsS -o /dev/null "http://127.0.0.1:$PORT/" 2>/dev/null; then
+        GW_READY=1
         # Open Dashboard
         open "http://127.0.0.1:$PORT/#token=uclaw" 2>/dev/null || true
         # Open Config Center
@@ -234,6 +240,11 @@ for i in $(seq 1 30); do
         break
     fi
 done
+
+if [ "$GW_READY" != "1" ]; then
+    echo -e "  ${YELLOW}Gateway not ready yet, opened Config Center only.${NC}"
+    open "http://127.0.0.1:$CFG_PORT/?gatewayPort=$PORT" 2>/dev/null || true
+fi
 
 echo -e "  ${GREEN}════════════════════════════════${NC}"
 echo -e "  ${GREEN}🦞 U盘虾 is running!${NC}"
@@ -245,13 +256,24 @@ echo -e "  ${GREEN}════════════════════�
 echo ""
 
 # ---- Cleanup on exit ----
+CLEANED=0
 cleanup() {
-    kill $GW_PID 2>/dev/null
-    kill $CONFIG_PID 2>/dev/null
+    if [ "$CLEANED" = "1" ]; then
+        return
+    fi
+    CLEANED=1
+
+    # Try graceful stop through Config Center first (covers restarted gateway PID).
+    curl -s -X POST "http://127.0.0.1:$CFG_PORT/api/gateway/stop" >/dev/null 2>&1 || true
+    sleep 0.2
+    kill "$GW_PID" 2>/dev/null || true
+    kill "$CONFIG_PID" 2>/dev/null || true
     echo ""
     echo -e "  🦞 U盘虾 stopped."
     exit 0
 }
-trap cleanup INT TERM
+trap cleanup INT TERM EXIT
 
-wait $GW_PID
+# Keep script alive with Config Center lifecycle so gateway restart/stop in UI
+# does not terminate this launcher script unexpectedly.
+wait "$CONFIG_PID"
