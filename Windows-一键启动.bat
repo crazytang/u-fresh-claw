@@ -1,4 +1,5 @@
 @echo off
+setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul 2>&1
 title U盘虾 - Portable AI Agent
 
@@ -45,6 +46,8 @@ set "NPM_BIN=%NODE_DIR%\npm.cmd"
 set "OPENCLAW_HOME=%DATA_DIR%"
 set "OPENCLAW_STATE_DIR=%STATE_DIR%"
 set "OPENCLAW_CONFIG_PATH=%STATE_DIR%\openclaw.json"
+set "OPENCLAW_MJS=%CORE_DIR%\node_modules\openclaw\openclaw.mjs"
+set "CONFIG_SERVER=%BASE_DIR%\config-server"
 
 REM Check runtime
 if not exist "%NODE_BIN%" (
@@ -89,8 +92,11 @@ if not exist "%CORE_DIR%\node_modules" (
     call "%NPM_BIN%" install --registry=https://registry.npmmirror.com
     echo.
     echo   Dependencies installed!
-    echo.
+	echo.
 )
+
+REM Cleanup old instance (same USB path only)
+call :stop_old_instances
 
 REM Find available port
 set PORT=18789
@@ -137,7 +143,6 @@ echo.
 
 REM Start Config Server in background
 echo   Starting Config Center on port %CFG_PORT%...
-set "CONFIG_SERVER=%BASE_DIR%\config-server"
 set "CONFIG_PORT=%CFG_PORT%"
 set "GATEWAY_PORT=%PORT%"
 start /B "" "%NODE_BIN%" "%CONFIG_SERVER%\server.js" >nul 2>&1
@@ -160,9 +165,29 @@ echo   DO NOT close this window while using U盘虾!
 echo.
 
 cd /d "%CORE_DIR%"
-set "OPENCLAW_MJS=%CORE_DIR%\node_modules\openclaw\openclaw.mjs"
 "%NODE_BIN%" "%OPENCLAW_MJS%" gateway run --allow-unconfigured --force --port %PORT%
 
 echo.
 echo   OpenClaw stopped.
 pause
+goto :eof
+
+:stop_old_instances
+set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+if not exist "%PS_EXE%" goto :eof
+
+set "OLD_FOUND=0"
+for /f %%P in ('"%PS_EXE%" -NoProfile -Command "$ErrorActionPreference='SilentlyContinue'; $m=[Regex]::Escape($env:OPENCLAW_MJS); $c=[Regex]::Escape((Join-Path $env:CONFIG_SERVER 'server.js')); Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq 'node.exe' -and $_.CommandLine -and ( $_.CommandLine -match $m -or $_.CommandLine -match $c ) } | Select-Object -ExpandProperty ProcessId"') do (
+    set "OLD_FOUND=1"
+    echo   Detected old instance PID %%P, stopping...
+    taskkill /PID %%P >nul 2>&1
+)
+
+if "!OLD_FOUND!"=="1" (
+    timeout /t 1 /nobreak >nul
+    for /f %%P in ('"%PS_EXE%" -NoProfile -Command "$ErrorActionPreference='SilentlyContinue'; $m=[Regex]::Escape($env:OPENCLAW_MJS); $c=[Regex]::Escape((Join-Path $env:CONFIG_SERVER 'server.js')); Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq 'node.exe' -and $_.CommandLine -and ( $_.CommandLine -match $m -or $_.CommandLine -match $c ) } | Select-Object -ExpandProperty ProcessId"') do (
+        taskkill /F /PID %%P >nul 2>&1
+    )
+    echo   Old instance stopped.
+)
+goto :eof

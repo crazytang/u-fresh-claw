@@ -183,7 +183,132 @@ if [ ! -d "$CORE_DIR/node_modules" ]; then
     echo ""
 fi
 
-# ---- 8. Find available port ----
+# ---- 8. Validate config encoding/json and auto-repair if needed ----
+normalize_and_validate_config() {
+    [ -f "$CONFIG_FILE" ] || return 0
+
+    local json5_path="$CORE_DIR/node_modules/openclaw/node_modules/json5"
+    "$NODE_BIN" - "$CONFIG_FILE" "$json5_path" <<'NODEEOF'
+const fs = require('fs');
+
+const configPath = process.argv[2];
+const json5Path = process.argv[3];
+const raw = fs.readFileSync(configPath);
+
+function decodeText(buf) {
+  // UTF-16 LE BOM
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return buf.slice(2).toString('utf16le');
+  }
+  // UTF-16 BE BOM
+  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    const swapped = Buffer.allocUnsafe(Math.max(0, buf.length - 2));
+    for (let i = 2; i < buf.length; i += 2) {
+      swapped[i - 2] = buf[i + 1] ?? 0;
+      swapped[i - 1] = buf[i];
+    }
+    return swapped.toString('utf16le');
+  }
+  return buf.toString('utf8');
+}
+
+let text = decodeText(raw);
+if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // strip UTF-8 BOM
+
+let ok = false;
+let lastErr = null;
+try {
+  JSON.parse(text);
+  ok = true;
+} catch (e) {
+  lastErr = e;
+}
+
+if (!ok && json5Path && fs.existsSync(json5Path)) {
+  try {
+    const json5 = require(json5Path);
+    json5.parse(text);
+    ok = true;
+  } catch (e) {
+    lastErr = e;
+  }
+}
+
+if (!ok) {
+  console.error(lastErr ? String(lastErr.message || lastErr) : 'config parse failed');
+  process.exit(2);
+}
+
+// Normalize to utf-8 text file after successful parse.
+fs.writeFileSync(configPath, text, 'utf8');
+NODEEOF
+}
+
+ensure_valid_config() {
+    if normalize_and_validate_config; then
+        return 0
+    fi
+
+    local broken="$CONFIG_FILE.broken.$(date +%Y%m%d_%H%M%S)"
+    cp "$CONFIG_FILE" "$broken" 2>/dev/null || true
+    echo -e "  ${YELLOW}Config invalid/corrupted, backup saved:${NC} $broken"
+    cat > "$CONFIG_FILE" << 'CFGEOF'
+{
+  "gateway": {
+    "mode": "local",
+    "auth": { "token": "uclaw" }
+  }
+}
+CFGEOF
+    echo -e "  ${GREEN}Config reset to default. Please re-open Config Center to set model/API key.${NC}"
+}
+
+ensure_valid_config
+
+# ---- 9. Cleanup old instance (same USB path only) ----
+stop_old_instance() {
+    local found=0
+    local pid
+    local gw_pattern="$CORE_DIR/node_modules/openclaw/openclaw.mjs gateway run"
+    local cfg_pattern="$BASE_DIR/config-server/server.js"
+    local gw_pids cfg_pids all_pids
+
+    gw_pids=$(pgrep -f "$gw_pattern" 2>/dev/null || true)
+    cfg_pids=$(pgrep -f "$cfg_pattern" 2>/dev/null || true)
+    all_pids="$gw_pids $cfg_pids"
+
+    for pid in $all_pids; do
+        [ -z "$pid" ] && continue
+        [ "$pid" = "$$" ] && continue
+        found=1
+        break
+    done
+
+    if [ "$found" = "0" ]; then
+        return 0
+    fi
+
+    echo -e "  ${YELLOW}Detected running instance, stopping old process(es)...${NC}"
+    for pid in $all_pids; do
+        [ -z "$pid" ] && continue
+        [ "$pid" = "$$" ] && continue
+        kill "$pid" 2>/dev/null || true
+    done
+
+    sleep 1
+    for pid in $all_pids; do
+        [ -z "$pid" ] && continue
+        [ "$pid" = "$$" ] && continue
+        if kill -0 "$pid" 2>/dev/null; then
+            kill -9 "$pid" 2>/dev/null || true
+        fi
+    done
+    echo -e "  ${GREEN}Old instance stopped${NC}"
+}
+
+stop_old_instance
+
+# ---- 10. Find available port ----
 PORT=18789
 while lsof -i :$PORT >/dev/null 2>&1; do
     echo -e "  ${YELLOW}Port $PORT in use, trying next...${NC}"
@@ -195,7 +320,7 @@ while lsof -i :$PORT >/dev/null 2>&1; do
     fi
 done
 
-# ---- 9. Find available config center port ----
+# ---- 11. Find available config center port ----
 CFG_PORT=18788
 while [ "$CFG_PORT" -eq "$PORT" ] || lsof -i :$CFG_PORT >/dev/null 2>&1; do
     echo -e "  ${YELLOW}Config port $CFG_PORT in use, trying next...${NC}"
@@ -207,14 +332,14 @@ while [ "$CFG_PORT" -eq "$PORT" ] || lsof -i :$CFG_PORT >/dev/null 2>&1; do
     fi
 done
 
-# ---- 10. Start Config Server in background ----
+# ---- 12. Start Config Server in background ----
 echo -e "  ${CYAN}Starting Config Center on port $CFG_PORT...${NC}"
 CONFIG_SERVER="$BASE_DIR/config-server"
 CONFIG_PORT="$CFG_PORT" GATEWAY_PORT="$PORT" "$NODE_BIN" "$CONFIG_SERVER/server.js" &
 CONFIG_PID=$!
 sleep 1
 
-# ---- 11. Start gateway ----
+# ---- 13. Start gateway ----
 echo -e "  ${CYAN}Starting OpenClaw on port $PORT...${NC}"
 echo ""
 
@@ -223,7 +348,7 @@ OPENCLAW_MJS="$CORE_DIR/node_modules/openclaw/openclaw.mjs"
 "$NODE_BIN" "$OPENCLAW_MJS" gateway run --allow-unconfigured --force --port $PORT &
 GW_PID=$!
 
-# ---- 12. Wait for gateway, then open browser ----
+# ---- 14. Wait for gateway, then open browser ----
 GW_READY=0
 for i in $(seq 1 120); do
     sleep 0.5
