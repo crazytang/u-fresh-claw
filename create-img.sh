@@ -1,30 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+RUN_START_TS="$(date +%s)"
+
+format_elapsed() {
+  local total="$1"
+  local h m s
+  h=$((total / 3600))
+  m=$(((total % 3600) / 60))
+  s=$((total % 60))
+  printf '%02d:%02d:%02d' "$h" "$m" "$s"
+}
+
+print_elapsed() {
+  local rc="$1"
+  local end_ts elapsed status
+  end_ts="$(date +%s)"
+  elapsed=$((end_ts - RUN_START_TS))
+  if [ "$rc" -eq 0 ]; then
+    status="成功"
+  else
+    status="失败($rc)"
+  fi
+  echo "执行耗时 : $(format_elapsed "$elapsed")"
+  echo "执行状态 : $status"
+}
+
 usage() {
   cat <<'USAGE'
 用法:
-  # 仅生成镜像（若已存在则跳过）
-  ./upgrade/clone-image-to-usb-macos.sh <镜像文件路径(.img)>
-
-  # 生成镜像后克隆到U盘（或镜像已存在则直接克隆）
-  sudo ./upgrade/clone-image-to-usb-macos.sh <镜像文件路径(.img/.iso)> <目标磁盘>
+  ./create-img.sh <镜像文件路径(.img)>
 
 参数示例:
-  ./upgrade/clone-image-to-usb-macos.sh dist/u-fresh-claw-v0.0.3-upgrade-to-4.9.img
-  sudo ./upgrade/clone-image-to-usb-macos.sh dist/u-fresh-claw-v0.0.3-upgrade-to-4.9.img disk4
-  sudo ./upgrade/clone-image-to-usb-macos.sh dist/u-fresh-claw-v0.0.3-upgrade-to-4.9.iso /dev/disk4
+  ./create-img.sh dist/u-fresh-claw-v0.0.3-upgrade-to-4.9.img
 
 说明:
-  - 仅生成镜像模式下，不需要 sudo。
-  - 克隆模式下，目标必须是整盘设备 (diskX)，脚本会拒绝分区 (diskXsY)。
-  - 克隆会清空目标磁盘上的所有数据。
+  - 仅生成镜像，不会写入U盘。
+  - 如果镜像文件已存在，会直接跳过生成。
+  - 若找不到同名目录，会尝试使用同名 ZIP 作为源。
   - 默认镜像容量为 30000 MiB（适配常见 32GB U盘），可用 IMG_SIZE_MB 或 DEFAULT_IMG_SIZE_MB 覆盖。
 USAGE
-
-  echo ""
-  echo "可用外置磁盘 (macOS):"
-  diskutil list external physical || true
 }
 
 die() {
@@ -40,15 +55,19 @@ if [ "$(uname -s)" != "Darwin" ]; then
   die "此脚本仅支持 macOS。"
 fi
 
-if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  usage
+  exit 0
+fi
+
+if [ "$#" -ne 1 ]; then
   usage
   exit 1
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$SCRIPT_DIR"
 IMAGE_INPUT="$1"
-TARGET_INPUT="${2:-}"
 
 if [[ "$IMAGE_INPUT" != /* ]]; then
   IMAGE_PATH="$ROOT_DIR/$IMAGE_INPUT"
@@ -57,7 +76,7 @@ else
 fi
 
 # 仅生成镜像模式下，若通过 sudo 调用，自动切回原用户执行，避免权限/TCC问题。
-if [ -z "$TARGET_INPUT" ] && [ "$EUID" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
+if [ "$EUID" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
   echo "检测到仅生成镜像模式，自动切换到用户 ${SUDO_USER} 执行。"
   exec sudo -u "$SUDO_USER" -- "$0" "$IMAGE_INPUT"
 fi
@@ -80,7 +99,13 @@ cleanup() {
     GEN_TMP_SOURCE=""
   fi
 }
-trap cleanup EXIT
+
+on_exit() {
+  local rc=$?
+  cleanup
+  print_elapsed "$rc"
+}
+trap on_exit EXIT
 
 pick_sync_source() {
   local base="$1"
@@ -186,7 +211,7 @@ ensure_image_exists() {
     echo "镜像写入失败，当前镜像挂载可用空间如下:"
     df -h "$GEN_TMP_MOUNT" | sed 's/^/  /' || true
     echo "可尝试增大镜像容量（单位 MiB）后重试，例如："
-    echo "  IMG_SIZE_MB=12288 ./upgrade/clone-image-to-usb-macos.sh \"$IMAGE_PATH\""
+    echo "  IMG_SIZE_MB=12288 ./create-img.sh \"$IMAGE_PATH\""
     exit 1
   fi
   sync
@@ -203,92 +228,5 @@ ensure_image_exists() {
   echo "镜像生成完成: $IMAGE_PATH"
 }
 
-resolve_target_disk() {
-  local target="$1"
-  local info device_id part_of_whole disk_id
-
-  info="$(diskutil info "$target" 2>/dev/null || true)"
-  [ -n "$info" ] || die "无法识别目标: $target"
-
-  device_id="$(printf '%s\n' "$info" | awk -F: '/Device Identifier:/ {print $2; exit}' | trim)"
-  part_of_whole="$(printf '%s\n' "$info" | awk -F: '/Part of Whole:/ {print $2; exit}' | trim)"
-
-  if [[ "$device_id" =~ ^disk[0-9]+$ ]]; then
-    disk_id="$device_id"
-  elif [[ "$device_id" =~ ^disk[0-9]+s[0-9]+$ ]] && [ -n "$part_of_whole" ]; then
-    disk_id="$part_of_whole"
-  elif [[ "$target" =~ ^/dev/r?disk[0-9]+$ ]]; then
-    disk_id="$(basename "$target")"
-    disk_id="${disk_id#r}"
-  elif [[ "$target" =~ ^r?disk[0-9]+$ ]]; then
-    disk_id="${target#r}"
-  else
-    die "无法解析目标磁盘: $target"
-  fi
-
-  printf '%s\n' "$disk_id"
-}
-
-clone_image_to_disk() {
-  local disk_id="$1"
-  local disk_info whole_flag internal_flag disk_size out_dev img_size_bytes
-
-  disk_info="$(diskutil info "/dev/$disk_id" 2>/dev/null || true)"
-  [ -n "$disk_info" ] || die "目标整盘不存在: /dev/$disk_id"
-
-  whole_flag="$(printf '%s\n' "$disk_info" | awk -F: '/Whole:/ {print $2; exit}' | trim)"
-  internal_flag="$(printf '%s\n' "$disk_info" | awk -F: '/Internal:/ {print $2; exit}' | trim)"
-  disk_size="$(printf '%s\n' "$disk_info" | awk -F: '/Disk Size:/ {print $2; exit}' | trim)"
-
-  [ "$whole_flag" = "Yes" ] || die "目标不是整盘设备，请使用 diskX (不是 diskXsY)。"
-  [ "$internal_flag" = "No" ] || die "拒绝写入内置磁盘: /dev/$disk_id"
-
-  if [ -b "/dev/r$disk_id" ]; then
-    out_dev="/dev/r$disk_id"
-  else
-    out_dev="/dev/$disk_id"
-  fi
-
-  img_size_bytes="$(stat -f%z "$IMAGE_PATH")"
-
-  echo "镜像文件 : $IMAGE_PATH"
-  echo "镜像大小 : ${img_size_bytes} bytes"
-  echo "目标磁盘 : /dev/$disk_id"
-  echo "目标大小 : $disk_size"
-  echo "写入设备 : $out_dev"
-  echo ""
-  echo "警告: 目标磁盘上的数据将被清空。"
-  read -r -p "输入 YES 确认继续: " confirm
-  if [ "$confirm" != "YES" ]; then
-    echo "已取消。"
-    exit 1
-  fi
-
-  echo "正在卸载目标磁盘..."
-  diskutil unmountDisk force "/dev/$disk_id" >/dev/null
-
-  echo "开始写入（请等待进度完成）..."
-  dd if="$IMAGE_PATH" of="$out_dev" bs=8m status=progress conv=sync
-
-  echo "正在同步缓存..."
-  sync
-
-  echo "尝试弹出磁盘..."
-  diskutil eject "/dev/$disk_id" >/dev/null || true
-
-  echo "克隆完成。"
-}
-
 ensure_image_exists
-
-if [ -z "$TARGET_INPUT" ]; then
-  echo "仅生成镜像模式完成。"
-  exit 0
-fi
-
-if [ "$EUID" -ne 0 ]; then
-  die "克隆到U盘需要 sudo。"
-fi
-
-disk_id="$(resolve_target_disk "$TARGET_INPUT")"
-clone_image_to_disk "$disk_id"
+echo "仅生成镜像模式完成。"

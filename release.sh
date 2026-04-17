@@ -7,11 +7,22 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VERSION="${1:-v$(date +%Y%m%d_%H%M%S)}"
+VERSION="${VERSION%.zip}"
 OUT_DIR="${2:-$ROOT_DIR/dist}"
-PKG_NAME="u-fresh-claw-${VERSION}"
-STAGE_DIR="$OUT_DIR/$PKG_NAME"
+if [[ "$VERSION" == u-fresh-claw-* ]]; then
+  PKG_NAME="$VERSION"
+else
+  PKG_NAME="u-fresh-claw-${VERSION}"
+fi
+STAGE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/uclaw-release.XXXXXX")"
+STAGE_DIR="$STAGE_ROOT/$PKG_NAME"
 ZIP_PATH="$OUT_DIR/$PKG_NAME.zip"
 SHA_PATH="$ZIP_PATH.sha256"
+
+cleanup() {
+  rm -rf "$STAGE_ROOT" 2>/dev/null || true
+}
+trap cleanup EXIT
 
 if ! command -v rsync >/dev/null 2>&1; then
   echo "[ERROR] rsync not found"
@@ -24,7 +35,7 @@ if ! command -v zip >/dev/null 2>&1; then
 fi
 
 mkdir -p "$OUT_DIR"
-rm -rf "$STAGE_DIR" "$ZIP_PATH" "$SHA_PATH"
+rm -rf "$ZIP_PATH" "$SHA_PATH"
 
 echo "[1/4] Copying files to staging: $STAGE_DIR"
 rsync -a "$ROOT_DIR/" "$STAGE_DIR/" \
@@ -38,6 +49,7 @@ rsync -a "$ROOT_DIR/" "$STAGE_DIR/" \
   --exclude 'Desktop.ini' \
   --exclude '/.env' \
   --exclude '/.env.*' \
+  --exclude '/.gitignore' \
   --exclude '/.cache/' \
   --exclude '/tmp/' \
   --exclude '/temp/' \
@@ -45,7 +57,9 @@ rsync -a "$ROOT_DIR/" "$STAGE_DIR/" \
   --exclude '/oc/RESET_REPORT_*.md' \
   --exclude '/oc/data_reset_snapshot_*.txt' \
   --exclude '/extract-zip-to-usb.sh' \
-  --exclude '/clone-image-to-usb-macos.sh' \
+  --exclude '/create-img.sh' \
+  --exclude '/clone-usb.sh' \
+  --exclude '/release.sh' \
 
 echo "[2/4] Re-creating empty runtime data directories"
 mkdir -p "$STAGE_DIR/oc/data/.openclaw" \
@@ -55,11 +69,10 @@ mkdir -p "$STAGE_DIR/oc/data/.openclaw" \
 
 echo "[3/4] Compressing zip"
 (
-  cd "$OUT_DIR"
+  cd "$STAGE_ROOT"
   zip -qr "$PKG_NAME.zip" "$PKG_NAME"
+  mv "$PKG_NAME.zip" "$ZIP_PATH"
 )
-
-rm -rf "$STAGE_DIR"
 
 echo "[4/4] Generating checksum"
 if command -v shasum >/dev/null 2>&1; then

@@ -2,8 +2,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$SCRIPT_DIR"
 DEFAULT_ZIP="$ROOT_DIR/dist/"
+RUN_START_TS="$(date +%s)"
+STAGE_DIR=""
+CLEANUP_DONE=0
+
+format_elapsed() {
+  local total="$1"
+  local h m s
+  h=$((total / 3600))
+  m=$(((total % 3600) / 60))
+  s=$((total % 60))
+  printf '%02d:%02d:%02d' "$h" "$m" "$s"
+}
 
 usage() {
   cat <<USAGE
@@ -33,6 +45,47 @@ die() {
   echo "ERROR: $*" >&2
   exit 1
 }
+
+cleanup() {
+  if [ "${CLEANUP_DONE:-0}" -eq 1 ]; then
+    return 0
+  fi
+  CLEANUP_DONE=1
+  if [ -n "${STAGE_DIR:-}" ] && [ -d "$STAGE_DIR" ]; then
+    rm -rf "$STAGE_DIR" || true
+    echo "已清理临时目录: $STAGE_DIR"
+  fi
+}
+
+print_elapsed() {
+  local rc="$1"
+  local end_ts elapsed status
+  end_ts="$(date +%s)"
+  elapsed=$((end_ts - RUN_START_TS))
+  if [ "$rc" -eq 0 ]; then
+    status="成功"
+  else
+    status="失败($rc)"
+  fi
+  echo "执行耗时 : $(format_elapsed "$elapsed")"
+  echo "执行状态 : $status"
+}
+
+on_exit() {
+  local rc=$?
+  cleanup
+  print_elapsed "$rc"
+}
+
+handle_interrupt() {
+  echo ""
+  echo "收到中断信号，正在清理临时目录..."
+  cleanup
+  exit 130
+}
+
+trap on_exit EXIT
+trap handle_interrupt INT TERM HUP QUIT
 
 DRY_RUN=0
 if [ "${1:-}" = "--dry-run" ]; then
@@ -94,25 +147,6 @@ echo "总条目数 : $TOTAL_ENTRIES"
 echo "开始本地解压..."
 
 STAGE_DIR="$(mktemp -d "${TMPDIR:-/tmp}uclaw-stage.XXXXXX")"
-CLEANUP_DONE=0
-cleanup() {
-  if [ "${CLEANUP_DONE:-0}" -eq 1 ]; then
-    return 0
-  fi
-  CLEANUP_DONE=1
-  if [ -n "${STAGE_DIR:-}" ] && [ -d "$STAGE_DIR" ]; then
-    rm -rf "$STAGE_DIR" || true
-    echo "已清理临时目录: $STAGE_DIR"
-  fi
-}
-handle_interrupt() {
-  echo ""
-  echo "收到中断信号，正在清理临时目录..."
-  cleanup
-  exit 130
-}
-trap cleanup EXIT
-trap handle_interrupt INT TERM HUP QUIT
 
 # 先解压到本地临时目录，并显示近似进度。
 unzip -o "$ZIP_PATH" -d "$STAGE_DIR" 2>&1 | awk -v total="$TOTAL_ENTRIES" '
