@@ -43,7 +43,9 @@ rsync -a "$ROOT_DIR/" "$STAGE_DIR/" \
   --exclude '/temp/' \
   --exclude '/oc/data/' \
   --exclude '/oc/RESET_REPORT_*.md' \
-  --exclude '/oc/data_reset_snapshot_*.txt'
+  --exclude '/oc/data_reset_snapshot_*.txt' \
+  --exclude '/extract-zip-to-usb.sh' \
+  --exclude '/clone-image-to-usb-macos.sh' \
 
 echo "[2/4] Re-creating empty runtime data directories"
 mkdir -p "$STAGE_DIR/oc/data/.openclaw" \
