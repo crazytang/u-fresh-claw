@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions
 chcp 65001 >nul 2>&1
-title U盘虾 WeChat QR Bind (Core)
+title UFreshClaw WeChat QR Bind (Core)
 
 set "SCRIPT_DIR=%~dp0"
 if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
@@ -26,7 +26,6 @@ set "TMP_BIN_DIR=%TEMP%\uclaw-open-bind-bin"
 if not exist "%NODE_BIN%" goto :err_node
 if not exist "%OPENCLAW_MJS%" goto :err_openclaw
 if not exist "%CORE_DIR%" goto :err_core
-if not exist "%PLUGIN_JSON%" goto :err_plugin
 
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" >nul 2>nul
 if not exist "%STATE_DIR%" mkdir "%STATE_DIR%" >nul 2>nul
@@ -46,14 +45,18 @@ set "OPENCLAW_CONFIG_PATH=%CONFIG_PATH%"
 
 set "PATH=%TMP_BIN_DIR%;%CORE_DIR%\node_modules\.bin;%NODE_DIR%;%PATH%"
 
-for /d %%D in ("%STATE_DIR%\extensions\.openclaw-install-stage-*") do (
-  rmdir /s /q "%%~fD" >nul 2>nul
+if exist "%STATE_DIR%\extensions" (
+  for /d %%D in ("%STATE_DIR%\extensions\.openclaw-install-stage-*") do (
+    rmdir /s /q "%%~fD" >nul 2>nul
+  )
 )
+
+if not exist "%PLUGIN_JSON%" goto :err_plugin
 
 cls
 echo ========================================
-echo   U盘虾 WeChat QR Bind (Windows)
-echo   Login only, no reinstall
+echo   UFreshClaw WeChat QR Bind (Windows)
+echo   Login only, preloaded extension mode
 echo ========================================
 echo State: %OPENCLAW_STATE_DIR%
 echo Log  : %LOG_FILE%
@@ -100,7 +103,10 @@ exit /b 1
 echo [ERROR] WeChat plugin is not installed:
 echo %PLUGIN_JSON%
 >> "%LOG_FILE%" echo [UCLAW] plugin missing: %PLUGIN_JSON%
-echo Please install plugin first, then run bind.
+echo Please copy plugin files to:
+echo   %STATE_DIR%\extensions\openclaw-weixin\
+echo Then run bind again.
+echo Log: %LOG_FILE%
 pause
 exit /b 1
 

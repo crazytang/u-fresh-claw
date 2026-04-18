@@ -1,11 +1,11 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul 2>&1
-title U盘虾 - Portable AI Agent
+title UFreshClaw - Portable AI Agent
 
 echo.
 echo   ========================================
-echo     U盘虾 v1.1 - Portable AI Agent
+echo     UFreshClaw v1.1 - Portable AI Agent
 echo   ========================================
 echo.
 
@@ -103,6 +103,7 @@ set PORT=18789
 :check_port
 netstat -an | findstr ":%PORT% " | findstr "LISTENING" >nul 2>&1
 if %errorlevel%==0 (
+    if "%PORT%"=="18789" echo   Default gateway port 18789 is still occupied by a non-OpenClaw process.
     echo   Port %PORT% in use, trying next...
     set /a PORT+=1
     if %PORT% gtr 18799 (
@@ -128,6 +129,7 @@ if "%CFG_PORT%"=="%PORT%" (
 )
 netstat -an | findstr ":%CFG_PORT% " | findstr "LISTENING" >nul 2>&1
 if %errorlevel%==0 (
+    if "%CFG_PORT%"=="18788" echo   Default config port 18788 is still occupied by a non-OpenClaw process.
     echo   Config port %CFG_PORT% in use, trying next...
     set /a CFG_PORT+=1
     if %CFG_PORT% gtr 18798 (
@@ -161,7 +163,7 @@ REM Open Config Center (Node.js web UI) second
 start "" http://127.0.0.1:%CFG_PORT%/?gatewayPort=%PORT%
 
 echo   Browsers opened. Starting OpenClaw Gateway on port %PORT%...
-echo   DO NOT close this window while using U盘虾!
+echo   DO NOT close this window while using UFreshClaw!
 echo.
 
 cd /d "%CORE_DIR%"
@@ -176,8 +178,11 @@ goto :eof
 set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
 if not exist "%PS_EXE%" goto :eof
 
+set "PID_FILE=%TEMP%\uclaw-pids-%RANDOM%%RANDOM%.txt"
+call :collect_old_pids "%PID_FILE%"
+
 set "OLD_FOUND=0"
-for /f %%P in ('"%PS_EXE%" -NoProfile -Command "$ErrorActionPreference='SilentlyContinue'; $m=[Regex]::Escape($env:OPENCLAW_MJS); $c=[Regex]::Escape((Join-Path $env:CONFIG_SERVER 'server.js')); Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq 'node.exe' -and $_.CommandLine -and ( $_.CommandLine -match $m -or $_.CommandLine -match $c ) } | Select-Object -ExpandProperty ProcessId"') do (
+for /f "usebackq delims=" %%P in ("%PID_FILE%") do (
     set "OLD_FOUND=1"
     echo   Detected old instance PID %%P, stopping...
     taskkill /PID %%P >nul 2>&1
@@ -185,9 +190,42 @@ for /f %%P in ('"%PS_EXE%" -NoProfile -Command "$ErrorActionPreference='Silently
 
 if "!OLD_FOUND!"=="1" (
     timeout /t 1 /nobreak >nul
-    for /f %%P in ('"%PS_EXE%" -NoProfile -Command "$ErrorActionPreference='SilentlyContinue'; $m=[Regex]::Escape($env:OPENCLAW_MJS); $c=[Regex]::Escape((Join-Path $env:CONFIG_SERVER 'server.js')); Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq 'node.exe' -and $_.CommandLine -and ( $_.CommandLine -match $m -or $_.CommandLine -match $c ) } | Select-Object -ExpandProperty ProcessId"') do (
+    call :collect_old_pids "%PID_FILE%"
+    for /f "usebackq delims=" %%P in ("%PID_FILE%") do (
         taskkill /F /PID %%P >nul 2>&1
     )
     echo   Old instance stopped.
 )
+
+REM Prefer reclaiming default ports from OpenClaw leftovers before auto-fallback.
+call :collect_old_pids "%PID_FILE%"
+call :kill_openclaw_listener_on_port 18789 "%PID_FILE%"
+call :kill_openclaw_listener_on_port 18788 "%PID_FILE%"
+
+if exist "%PID_FILE%" del /f /q "%PID_FILE%" >nul 2>&1
+goto :eof
+
+:kill_openclaw_listener_on_port
+set "TARGET_PORT=%~1"
+set "PID_LIST_FILE=%~2"
+set "PORT_FREED=0"
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":%TARGET_PORT% .*LISTENING"') do (
+    echo(%%P| findstr /R "^[0-9][0-9]*$" >nul 2>&1
+    if not errorlevel 1 (
+        findstr /X /C:"%%P" "%PID_LIST_FILE%" >nul 2>&1
+        if not errorlevel 1 (
+            echo   Reclaiming default port %TARGET_PORT% from OpenClaw PID %%P...
+            taskkill /F /PID %%P >nul 2>&1
+            set "PORT_FREED=1"
+        )
+    )
+)
+if "!PORT_FREED!"=="1" (
+    timeout /t 1 /nobreak >nul
+)
+goto :eof
+
+:collect_old_pids
+set "OUT_FILE=%~1"
+"%PS_EXE%" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; $m=[Regex]::Escape($env:OPENCLAW_MJS); $c=[Regex]::Escape((Join-Path $env:CONFIG_SERVER 'server.js')); $g1='openclaw[\\/]+openclaw\.mjs'; $g2='config-server[\\/]+server\.js'; Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq 'node.exe' -and $_.CommandLine -and ( $_.CommandLine -match $m -or $_.CommandLine -match $c -or $_.CommandLine -match $g1 -or $_.CommandLine -match $g2 ) } | ForEach-Object { $_.ProcessId }" 2>nul | findstr /R "^[0-9][0-9]*$" > "%OUT_FILE%"
 goto :eof

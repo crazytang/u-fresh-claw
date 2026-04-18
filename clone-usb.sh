@@ -163,7 +163,8 @@ clone_image_to_disk() {
   [ "$internal_flag" = "false" ] || die "拒绝写入内置磁盘: /dev/$disk_id"
   is_external_physical_disk "$disk_id" || die "目标不在 external physical 列表中，拒绝写入: /dev/$disk_id"
 
-  if [ -b "/dev/r$disk_id" ]; then
+  # macOS 的 /dev/rdiskX 通常是字符设备（raw），写入速度远高于 /dev/diskX。
+  if [ -c "/dev/r$disk_id" ] || [ -b "/dev/r$disk_id" ]; then
     out_dev="/dev/r$disk_id"
   else
     out_dev="/dev/$disk_id"
@@ -196,7 +197,8 @@ clone_image_to_disk() {
   diskutil unmountDisk force "/dev/$disk_id" >/dev/null
 
   echo "开始写入（请等待进度完成）..."
-  dd if="$IMAGE_PATH" of="$out_dev" bs=8m status=progress conv=sync
+  # fullblock 可确保按完整块读取镜像，去掉 conv=sync 避免不必要填充。
+  dd if="$IMAGE_PATH" of="$out_dev" bs=16m iflag=fullblock status=progress
 
   echo "正在同步缓存..."
   sync

@@ -1,5 +1,5 @@
 #!/bin/bash
-# U盘虾 WeChat QR Bind (Core) - login only, no reinstall
+# UFreshClaw WeChat QR Bind (Core) - login with auto plugin install
 
 UCLAW_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$UCLAW_DIR/app"
@@ -26,6 +26,8 @@ NODE_BIN="$NODE_DIR/bin/node"
 OPENCLAW_MJS="$CORE_DIR/node_modules/openclaw/openclaw.mjs"
 PLUGIN_JSON="$STATE_DIR/extensions/openclaw-weixin/openclaw.plugin.json"
 TMP_BIN_DIR="/tmp/uclaw-open-bind-bin-mac"
+WEIXIN_PLUGIN_PKG="@tencent-weixin/openclaw-weixin"
+LOCAL_PLUGIN_TGZ="$UCLAW_DIR/plugins/openclaw-weixin.tgz"
 
 {
   echo "[UCLAW] WeChat bind started"
@@ -47,8 +49,8 @@ export PATH="$TMP_BIN_DIR:$CORE_DIR/node_modules/.bin:$NODE_DIR/bin:$PATH"
 
 echo
 echo "========================================"
-echo "  U盘虾 WeChat QR Bind (macOS)"
-echo "  Login only, no reinstall"
+echo "  UFreshClaw WeChat QR Bind (macOS)"
+echo "  Login flow with auto plugin install"
 echo "========================================"
 echo "State: $OPENCLAW_STATE_DIR"
 echo "Log  : $LOG_FILE"
@@ -66,14 +68,6 @@ if [ ! -f "$OPENCLAW_MJS" ]; then
   read -p "Press Enter to exit..."
   exit 1
 fi
-if [ ! -f "$PLUGIN_JSON" ]; then
-  echo "[ERROR] WeChat plugin not installed: $PLUGIN_JSON"
-  echo "[UCLAW] Plugin missing: $PLUGIN_JSON" >>"$LOG_FILE"
-  echo "Please install plugin first, then run bind."
-  read -p "Press Enter to exit..."
-  exit 1
-fi
-
 # Clean stale plugin install stage dirs to avoid duplicate-plugin errors.
 if [ -d "$STATE_DIR/extensions" ]; then
   find "$STATE_DIR/extensions" -maxdepth 1 -type d -name '.openclaw-install-stage-*' -exec rm -rf {} + 2>/dev/null || true
@@ -85,6 +79,27 @@ cd "$CORE_DIR" || {
   read -p "Press Enter to exit..."
   exit 1
 }
+
+if [ ! -f "$PLUGIN_JSON" ]; then
+  INSTALL_SPEC="$WEIXIN_PLUGIN_PKG"
+  if [ -f "$LOCAL_PLUGIN_TGZ" ]; then
+    INSTALL_SPEC="$LOCAL_PLUGIN_TGZ"
+    echo "[INFO] WeChat plugin not found, installing from local package..."
+    echo "[UCLAW] Plugin missing, installing from local package: $LOCAL_PLUGIN_TGZ" >>"$LOG_FILE"
+  else
+    echo "[INFO] WeChat plugin not found, local package missing, fallback to registry install..."
+    echo "[UCLAW] Local package missing, fallback install: $WEIXIN_PLUGIN_PKG" >>"$LOG_FILE"
+  fi
+  "$NODE_BIN" "$OPENCLAW_MJS" plugins install "$INSTALL_SPEC" >>"$LOG_FILE" 2>&1
+  if [ $? -ne 0 ] || [ ! -f "$PLUGIN_JSON" ]; then
+    echo "[ERROR] Plugin install failed. Check log: $LOG_FILE"
+    echo "[UCLAW] Plugin install failed" >>"$LOG_FILE"
+    read -p "Press Enter to exit..."
+    exit 1
+  fi
+  echo "[OK] Plugin installed."
+  echo "[UCLAW] Plugin installed" >>"$LOG_FILE"
+fi
 
 echo "Starting WeChat QR login..."
 echo "[UCLAW] Starting QR login" >>"$LOG_FILE"
