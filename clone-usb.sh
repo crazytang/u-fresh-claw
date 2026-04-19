@@ -26,6 +26,23 @@ print_elapsed() {
   echo "执行状态 : $status"
 }
 
+play_notice_sound() {
+  local sound_file="/System/Library/Sounds/Glass.aiff"
+  [ "${UCLAW_NO_SOUND:-0}" = "1" ] && return 0
+
+  if command -v afplay >/dev/null 2>&1 && [ -f "$sound_file" ]; then
+    if [ "$EUID" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
+      sudo -u "$SUDO_USER" -- afplay "$sound_file" >/dev/null 2>&1 || afplay "$sound_file" >/dev/null 2>&1
+    else
+      afplay "$sound_file" >/dev/null 2>&1
+    fi
+    return 0
+  fi
+
+  # Fallback: terminal bell
+  printf '\a' || true
+}
+
 usage() {
   cat <<'USAGE'
 用法:
@@ -71,6 +88,7 @@ plist_get_str() {
 on_exit() {
   local rc=$?
   print_elapsed "$rc"
+  play_notice_sound
 }
 trap on_exit EXIT
 

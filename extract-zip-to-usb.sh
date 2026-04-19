@@ -46,6 +46,26 @@ die() {
   exit 1
 }
 
+require_rsync_v3() {
+  local ver major
+  if ! command -v rsync >/dev/null 2>&1; then
+    return 1
+  fi
+
+  ver="$(rsync --version 2>/dev/null | awk 'NR==1{print $3}')"
+  major="${ver%%.*}"
+  if ! printf '%s' "$major" | grep -Eq '^[0-9]+$'; then
+    die "无法识别 rsync 版本: ${ver:-unknown}"
+  fi
+
+  if [ "$major" -lt 3 ]; then
+    echo "检测到 rsync 版本过低: ${ver}（当前脚本需要 3.x）。"
+    echo "原因: 需要 --no-inc-recursive / --info=progress2 参数。"
+    echo "请先安装新版 rsync（例如: brew install rsync），再重试。"
+    exit 1
+  fi
+}
+
 cleanup() {
   if [ "${CLEANUP_DONE:-0}" -eq 1 ]; then
     return 0
@@ -186,6 +206,7 @@ echo "同步源目录: $SYNC_SOURCE"
 echo "开始同步到U盘..."
 
 if command -v rsync >/dev/null 2>&1; then
+  require_rsync_v3
   # 大量小文件场景下，先本地解压再用 rsync 同步通常更稳，后续重复同步也更快。
   # 使用 --no-inc-recursive 先完整建立文件列表，避免 progress2 百分比回退。
   COPYFILE_DISABLE=1 COPY_EXTENDED_ATTRIBUTES_DISABLE=1 rsync -a --whole-file --omit-dir-times --no-inc-recursive --info=progress2 --no-xattrs --no-acls "$SYNC_SOURCE"/ "$USB_DIR"/

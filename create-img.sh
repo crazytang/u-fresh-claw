@@ -26,6 +26,19 @@ print_elapsed() {
   echo "执行状态 : $status"
 }
 
+play_notice_sound() {
+  local sound_file="/System/Library/Sounds/Glass.aiff"
+  [ "${UCLAW_NO_SOUND:-0}" = "1" ] && return 0
+
+  if command -v afplay >/dev/null 2>&1 && [ -f "$sound_file" ]; then
+    afplay "$sound_file" >/dev/null 2>&1 &
+    return 0
+  fi
+
+  # Fallback: terminal bell
+  printf '\a' || true
+}
+
 usage() {
   cat <<'USAGE'
 用法:
@@ -45,6 +58,26 @@ USAGE
 die() {
   echo "ERROR: $*" >&2
   exit 1
+}
+
+require_rsync_v3() {
+  local ver major
+  if ! command -v rsync >/dev/null 2>&1; then
+    die "未检测到 rsync，请先安装后重试。"
+  fi
+
+  ver="$(rsync --version 2>/dev/null | awk 'NR==1{print $3}')"
+  major="${ver%%.*}"
+  if ! printf '%s' "$major" | grep -Eq '^[0-9]+$'; then
+    die "无法识别 rsync 版本: ${ver:-unknown}"
+  fi
+
+  if [ "$major" -lt 3 ]; then
+    echo "检测到 rsync 版本过低: ${ver}（当前脚本需要 3.x）。"
+    echo "原因: 需要 --no-inc-recursive / --info=progress2 参数。"
+    echo "请先安装新版 rsync（例如: brew install rsync），再重试。"
+    exit 1
+  fi
 }
 
 trim() {
@@ -104,6 +137,7 @@ on_exit() {
   local rc=$?
   cleanup
   print_elapsed "$rc"
+  play_notice_sound
 }
 trap on_exit EXIT
 
@@ -147,6 +181,7 @@ ensure_image_exists() {
   fi
 
   [ -d "$sync_source" ] || die "源目录不可用: $sync_source"
+  require_rsync_v3
 
   local source_bytes file_count dir_count slack_bytes dir_bytes overhead_bytes total_bytes estimated_mb size_mb default_img_size_mb vol_name raw_vol_name
   source_bytes=$(( $(du -sk "$sync_source" | awk '{print $1}') * 1024 ))
