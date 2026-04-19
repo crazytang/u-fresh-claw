@@ -46,24 +46,75 @@ die() {
   exit 1
 }
 
+RSYNC_BIN=""
+RSYNC_VER=""
+
+parse_rsync_version() {
+  awk '
+    {
+      for (i = 1; i <= NF; i++) {
+        if ($i ~ /^[0-9]+\.[0-9]+(\.[0-9]+)*$/) {
+          print $i;
+          found = 1;
+          break;
+        }
+      }
+      if (found) exit;
+    }
+  '
+}
+
+pick_rsync_bin() {
+  local c output ver major first_line selected_old selected_old_ver
+  local candidates=()
+
+  if [ -n "${UCLAW_RSYNC:-}" ] && [ -x "${UCLAW_RSYNC:-}" ]; then
+    candidates+=("$UCLAW_RSYNC")
+  fi
+  if command -v rsync >/dev/null 2>&1; then
+    candidates+=("$(command -v rsync)")
+  fi
+  [ -x /opt/homebrew/bin/rsync ] && candidates+=(/opt/homebrew/bin/rsync)
+  [ -x /usr/local/bin/rsync ] && candidates+=(/usr/local/bin/rsync)
+  [ -x /opt/local/bin/rsync ] && candidates+=(/opt/local/bin/rsync)
+
+  [ "${#candidates[@]}" -gt 0 ] || return 1
+
+  selected_old=""
+  selected_old_ver=""
+  for c in "${candidates[@]}"; do
+    output="$("$c" --version 2>/dev/null || true)"
+    first_line="$(awk 'NR==1{print; exit}' <<<"$output")"
+    ver="$(parse_rsync_version <<<"$output")"
+    major="${ver%%.*}"
+    if [ -n "$ver" ] && printf '%s' "$major" | grep -Eq '^[0-9]+$'; then
+      if [ "$major" -ge 3 ]; then
+        RSYNC_BIN="$c"
+        RSYNC_VER="$ver"
+        return 0
+      fi
+      if [ -z "$selected_old" ]; then
+        selected_old="$c"
+        selected_old_ver="$ver"
+      fi
+    elif [ -z "$selected_old" ]; then
+      selected_old="$c"
+      selected_old_ver="unknown(first_line='${first_line:-empty}')"
+    fi
+  done
+
+  if [ -n "$selected_old" ]; then
+    die "检测到 rsync 版本过低: $selected_old ($selected_old_ver)。请使用 3.x（可设置 UCLAW_RSYNC=/opt/homebrew/bin/rsync）。"
+  fi
+  die "无法识别 rsync 版本，请检查 rsync --version 输出。"
+}
+
 require_rsync_v3() {
-  local ver major
-  if ! command -v rsync >/dev/null 2>&1; then
+  if ! pick_rsync_bin; then
     return 1
   fi
 
-  ver="$(rsync --version 2>/dev/null | awk 'NR==1{print $3}')"
-  major="${ver%%.*}"
-  if ! printf '%s' "$major" | grep -Eq '^[0-9]+$'; then
-    die "无法识别 rsync 版本: ${ver:-unknown}"
-  fi
-
-  if [ "$major" -lt 3 ]; then
-    echo "检测到 rsync 版本过低: ${ver}（当前脚本需要 3.x）。"
-    echo "原因: 需要 --no-inc-recursive / --info=progress2 参数。"
-    echo "请先安装新版 rsync（例如: brew install rsync），再重试。"
-    exit 1
-  fi
+  echo "使用 rsync: $RSYNC_BIN (version $RSYNC_VER)"
 }
 
 cleanup() {
@@ -195,7 +246,7 @@ echo "本地解压目录: $STAGE_DIR"
 SYNC_SOURCE="$STAGE_DIR"
 TOP_LEVEL_COUNT="$(find "$STAGE_DIR" -mindepth 1 -maxdepth 1 ! -name "__MACOSX" ! -name ".DS_Store" | wc -l | tr -d ' ')"
 if [ "$TOP_LEVEL_COUNT" -eq 1 ]; then
-  TOP_LEVEL_ITEM="$(find "$STAGE_DIR" -mindepth 1 -maxdepth 1 ! -name "__MACOSX" ! -name ".DS_Store" | head -n 1)"
+  TOP_LEVEL_ITEM="$(find "$STAGE_DIR" -mindepth 1 -maxdepth 1 ! -name "__MACOSX" ! -name ".DS_Store" -print -quit)"
   if [ -d "$TOP_LEVEL_ITEM" ]; then
     SYNC_SOURCE="$TOP_LEVEL_ITEM"
     echo "检测到单一顶层目录: $(basename "$TOP_LEVEL_ITEM")"
@@ -209,7 +260,7 @@ if command -v rsync >/dev/null 2>&1; then
   require_rsync_v3
   # 大量小文件场景下，先本地解压再用 rsync 同步通常更稳，后续重复同步也更快。
   # 使用 --no-inc-recursive 先完整建立文件列表，避免 progress2 百分比回退。
-  COPYFILE_DISABLE=1 COPY_EXTENDED_ATTRIBUTES_DISABLE=1 rsync -a --whole-file --omit-dir-times --no-inc-recursive --info=progress2 --no-xattrs --no-acls "$SYNC_SOURCE"/ "$USB_DIR"/
+  COPYFILE_DISABLE=1 COPY_EXTENDED_ATTRIBUTES_DISABLE=1 "$RSYNC_BIN" -a --whole-file --omit-dir-times --no-inc-recursive --info=progress2 --no-xattrs --no-acls "$SYNC_SOURCE"/ "$USB_DIR"/
 else
   echo "未检测到 rsync，回退到 cp -R（速度可能较慢）..."
   cp -R "$SYNC_SOURCE"/. "$USB_DIR"/
