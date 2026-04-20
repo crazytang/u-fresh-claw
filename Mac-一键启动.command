@@ -77,6 +77,9 @@ repair_node_shim() {
     local shim="$1"
     local target="$2"
     local bad=0
+    local shim_dir
+    shim_dir="$(dirname "$shim")"
+    [ -d "$shim_dir" ] || return 1
 
     if [ ! -f "$shim" ]; then
         bad=1
@@ -101,12 +104,15 @@ SHIMEOF
     return 1
 }
 
-FIXED_SHIMS=0
-repair_node_shim "$NODE_DIR/bin/npm" "../lib/node_modules/npm/bin/npm-cli.js" && FIXED_SHIMS=1
-repair_node_shim "$NODE_DIR/bin/npx" "../lib/node_modules/npm/bin/npx-cli.js" && FIXED_SHIMS=1
-repair_node_shim "$NODE_DIR/bin/corepack" "../lib/node_modules/corepack/dist/corepack.js" && FIXED_SHIMS=1
-if [ "$FIXED_SHIMS" = "1" ]; then
-    echo -e "  ${YELLOW}Detected damaged Node.js shims, auto-repaired${NC}"
+# 仅当 node 主程序存在时再尝试修复 shims，避免在 runtime 缺失时产生误导性日志。
+if [ -f "$NODE_BIN" ]; then
+    FIXED_SHIMS=0
+    repair_node_shim "$NODE_DIR/bin/npm" "../lib/node_modules/npm/bin/npm-cli.js" && FIXED_SHIMS=1
+    repair_node_shim "$NODE_DIR/bin/npx" "../lib/node_modules/npm/bin/npx-cli.js" && FIXED_SHIMS=1
+    repair_node_shim "$NODE_DIR/bin/corepack" "../lib/node_modules/corepack/dist/corepack.js" && FIXED_SHIMS=1
+    if [ "$FIXED_SHIMS" = "1" ]; then
+        echo -e "  ${YELLOW}Detected damaged Node.js shims, auto-repaired${NC}"
+    fi
 fi
 
 # ---- 2. Remove macOS quarantine ----
@@ -127,10 +133,21 @@ if [ ! -f "$NODE_BIN" ]; then
     TARBALL="node-${NODE_VERSION}-${NODE_PLATFORM}.tar.gz"
     NODE_URL="$NODE_MIRROR/$NODE_VERSION/$TARBALL"
     mkdir -p "$NODE_DIR"
-    if curl -fL "$NODE_URL" -o "/tmp/$TARBALL"; then
-        tar -xzf "/tmp/$TARBALL" -C "$NODE_DIR" --strip-components=1
-        rm -f "/tmp/$TARBALL"
-        chmod +x "$NODE_BIN" 2>/dev/null || true
+    TMP_TARBALL="/tmp/$TARBALL"
+    echo "  Download: $NODE_URL"
+    if curl -fL --connect-timeout 15 --retry 2 "$NODE_URL" -o "$TMP_TARBALL"; then
+        echo -e "  ${YELLOW}Download complete, extracting runtime...${NC}"
+        if tar -xzf "$TMP_TARBALL" -C "$NODE_DIR" --strip-components=1; then
+            rm -f "$TMP_TARBALL"
+            chmod +x "$NODE_BIN" 2>/dev/null || true
+            echo -e "  ${GREEN}Runtime extracted${NC}"
+        else
+            echo -e "  ${RED}Error: failed to extract Node.js runtime${NC}"
+            rm -f "$TMP_TARBALL"
+            rm -rf "$NODE_DIR"/bin "$NODE_DIR"/lib "$NODE_DIR"/include "$NODE_DIR"/share 2>/dev/null || true
+        fi
+    else
+        echo -e "  ${RED}Error: Node.js runtime download failed${NC}"
     fi
 fi
 

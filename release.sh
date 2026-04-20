@@ -2,6 +2,9 @@
 # Build distribution zip from current workspace.
 # Usage:
 #   bash release.sh [version] [output_dir]
+# Optional env:
+#   INCLUDE_DARWIN_X64_RUNTIME=0   Skip bundling/downloading macOS Intel runtime.
+#   PERSIST_DARWIN_X64_RUNTIME=0   Do not cache downloaded Intel runtime back to repo.
 
 set -euo pipefail
 
@@ -9,6 +12,10 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VERSION="${1:-v$(date +%Y%m%d_%H%M%S)}"
 VERSION="${VERSION%.zip}"
 OUT_DIR="${2:-$ROOT_DIR/dist}"
+NODE_VERSION="${NODE_VERSION:-v22.22.1}"
+NODE_MIRROR="${NODE_MIRROR:-https://npmmirror.com/mirrors/node}"
+INCLUDE_DARWIN_X64_RUNTIME="${INCLUDE_DARWIN_X64_RUNTIME:-1}"
+PERSIST_DARWIN_X64_RUNTIME="${PERSIST_DARWIN_X64_RUNTIME:-1}"
 if [[ "$VERSION" == u-fresh-claw-* ]]; then
   PKG_NAME="$VERSION"
 else
@@ -37,7 +44,47 @@ fi
 mkdir -p "$OUT_DIR"
 rm -rf "$ZIP_PATH" "$SHA_PATH"
 
-echo "[1/4] Copying files to staging: $STAGE_DIR"
+ensure_stage_runtime() {
+  local platform="$1"
+  local target_dir="$2"
+  local node_bin="$target_dir/bin/node"
+  local tarball url tmp_tar repo_runtime
+
+  if [ -x "$node_bin" ]; then
+    return 0
+  fi
+
+  tarball="node-${NODE_VERSION}-${platform}.tar.gz"
+  url="${NODE_MIRROR}/${NODE_VERSION}/${tarball}"
+  tmp_tar="$(mktemp "${TMPDIR:-/tmp}/uclaw-node.${platform}.XXXXXX.tar.gz")"
+
+  echo "[runtime] Missing ${platform} runtime, downloading..."
+  echo "[runtime] $url"
+  if ! curl -fL "$url" -o "$tmp_tar"; then
+    rm -f "$tmp_tar"
+    echo "[ERROR] Failed to download ${platform} runtime"
+    exit 1
+  fi
+
+  mkdir -p "$target_dir"
+  if ! tar -xzf "$tmp_tar" -C "$target_dir" --strip-components=1; then
+    rm -f "$tmp_tar"
+    echo "[ERROR] Failed to extract ${platform} runtime"
+    exit 1
+  fi
+  rm -f "$tmp_tar"
+
+  if [ "$platform" = "darwin-x64" ] && [ "$PERSIST_DARWIN_X64_RUNTIME" = "1" ]; then
+    repo_runtime="$ROOT_DIR/oc/app/runtime/node-mac-x64"
+    echo "[runtime] Caching ${platform} runtime to repo: $repo_runtime"
+    mkdir -p "$(dirname "$repo_runtime")"
+    rm -rf "$repo_runtime"
+    mkdir -p "$repo_runtime"
+    rsync -a "$target_dir"/ "$repo_runtime"/
+  fi
+}
+
+echo "[1/5] Copying files to staging: $STAGE_DIR"
 rsync -a "$ROOT_DIR/" "$STAGE_DIR/" \
   --exclude '/.git/' \
   --exclude '/dist/' \
@@ -61,20 +108,27 @@ rsync -a "$ROOT_DIR/" "$STAGE_DIR/" \
   --exclude '/clone-usb.sh' \
   --exclude '/release.sh' \
 
-echo "[2/4] Re-creating empty runtime data directories"
+if [ "$INCLUDE_DARWIN_X64_RUNTIME" = "1" ]; then
+  echo "[2/5] Ensuring macOS x64 runtime"
+  ensure_stage_runtime "darwin-x64" "$STAGE_DIR/oc/app/runtime/node-mac-x64"
+else
+  echo "[2/5] Skipping macOS x64 runtime (INCLUDE_DARWIN_X64_RUNTIME=0)"
+fi
+
+echo "[3/5] Re-creating empty runtime data directories"
 mkdir -p "$STAGE_DIR/oc/data/.openclaw" \
          "$STAGE_DIR/oc/data/memory" \
          "$STAGE_DIR/oc/data/logs" \
          "$STAGE_DIR/oc/data/backups"
 
-echo "[3/4] Compressing zip"
+echo "[4/5] Compressing zip"
 (
   cd "$STAGE_ROOT"
   zip -qr "$PKG_NAME.zip" "$PKG_NAME"
   mv "$PKG_NAME.zip" "$ZIP_PATH"
 )
 
-echo "[4/4] Generating checksum"
+echo "[5/5] Generating checksum"
 if command -v shasum >/dev/null 2>&1; then
   shasum -a 256 "$ZIP_PATH" > "$SHA_PATH"
 elif command -v sha256sum >/dev/null 2>&1; then
