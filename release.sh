@@ -84,6 +84,41 @@ ensure_stage_runtime() {
   fi
 }
 
+repair_portable_node_runtime_shims() {
+  local base_dir="$1"
+  local runtime shim
+
+  for runtime in "$base_dir"/oc/app/runtime/node-mac-* "$base_dir"/app/runtime/node-mac-*; do
+    [ -d "$runtime/bin" ] || continue
+
+    echo "[runtime] Normalizing portable Node shims: $runtime"
+    mkdir -p "$runtime/bin"
+
+    cat > "$runtime/bin/npm" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/npm/bin/npm-cli.js')
+EOF
+    cat > "$runtime/bin/npx" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/npm/bin/npx-cli.js')
+EOF
+    cat > "$runtime/bin/corepack" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/corepack/dist/corepack.js')
+EOF
+    chmod +x "$runtime/bin/npm" "$runtime/bin/npx" "$runtime/bin/corepack"
+
+    shim="$runtime/lib/node_modules/npm/bin/npm-cli.js"
+    if [ -f "$shim" ]; then
+      cat > "$shim" <<'EOF'
+#!/usr/bin/env node
+require('../lib/cli.js')(process)
+EOF
+      chmod +x "$shim"
+    fi
+  done
+}
+
 echo "[1/5] Copying files to staging: $STAGE_DIR"
 rsync -a "$ROOT_DIR/" "$STAGE_DIR/" \
   --exclude '/.git/' \
@@ -114,6 +149,8 @@ if [ "$INCLUDE_DARWIN_X64_RUNTIME" = "1" ]; then
 else
   echo "[2/5] Skipping macOS x64 runtime (INCLUDE_DARWIN_X64_RUNTIME=0)"
 fi
+
+repair_portable_node_runtime_shims "$STAGE_DIR"
 
 echo "[3/5] Re-creating empty runtime data directories"
 mkdir -p "$STAGE_DIR/oc/data/.openclaw" \

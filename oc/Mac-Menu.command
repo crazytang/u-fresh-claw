@@ -34,6 +34,13 @@ fi
 NODE_BIN="$NODE_DIR/bin/node"
 NPM_BIN="$NODE_DIR/bin/npm"
 export PATH="$NODE_DIR/bin:$PATH"
+export npm_config_registry="https://registry.npmmirror.com"
+export npm_config_disturl="https://npmmirror.com/mirrors/node"
+export npm_config_audit="false"
+export npm_config_fund="false"
+export npm_config_fetch_retries="5"
+export npm_config_fetch_retry_mintimeout="2000"
+export npm_config_fetch_retry_maxtimeout="20000"
 NODE_MIRROR="https://npmmirror.com/mirrors/node"
 NODE_VERSION="v22.22.1"
 
@@ -262,7 +269,11 @@ do_platforms() {
         b) echo "  Telegram: 找 @BotFather 创建机器人" ;;
         c)
             echo -e "  ${YELLOW}安装微信插件...${NC}"
-            run_oc plugins install @icesword760/openclaw-wechat 2>&1 || true
+            if [ -f "$UCLAW_DIR/plugins/openclaw-weixin.tgz" ]; then
+                run_oc plugins install "$UCLAW_DIR/plugins/openclaw-weixin.tgz" 2>&1 || true
+            else
+                run_oc plugins install @tencent-weixin/openclaw-weixin 2>&1 || true
+            fi
             ;;
         d) echo "  Discord: 访问 discord.com/developers/applications" ;;
         *) echo "  无效选择" ;;

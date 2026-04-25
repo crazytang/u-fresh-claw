@@ -48,6 +48,15 @@ set "OPENCLAW_STATE_DIR=%STATE_DIR%"
 set "OPENCLAW_CONFIG_PATH=%STATE_DIR%\openclaw.json"
 set "OPENCLAW_MJS=%CORE_DIR%\node_modules\openclaw\openclaw.mjs"
 set "CONFIG_SERVER=%BASE_DIR%\config-server"
+set "NPM_REGISTRY=https://registry.npmmirror.com"
+set "NODE_DISTURL=https://npmmirror.com/mirrors/node"
+set "npm_config_registry=%NPM_REGISTRY%"
+set "npm_config_disturl=%NODE_DISTURL%"
+set "npm_config_audit=false"
+set "npm_config_fund=false"
+set "npm_config_fetch_retries=5"
+set "npm_config_fetch_retry_mintimeout=2000"
+set "npm_config_fetch_retry_maxtimeout=20000"
 
 REM Check runtime
 if not exist "%NODE_BIN%" (
@@ -89,7 +98,7 @@ if not exist "%CORE_DIR%\node_modules" (
     echo   Using China mirror, please wait...
     echo.
     cd /d "%CORE_DIR%"
-    call "%NPM_BIN%" install --registry=https://registry.npmmirror.com
+    call "%NPM_BIN%" install --registry=%NPM_REGISTRY%
     echo.
     echo   Dependencies installed!
 	echo.

@@ -22,6 +22,14 @@ let skillInstallBusy = false;
 let skillUninstallBusy = false;
 const SKILL_INSTALL_RETRY_DELAYS_MS = [7000, 18000, 35000, 55000];
 
+process.env.npm_config_registry = process.env.npm_config_registry || 'https://registry.npmmirror.com';
+process.env.npm_config_disturl = process.env.npm_config_disturl || 'https://npmmirror.com/mirrors/node';
+process.env.npm_config_audit = process.env.npm_config_audit || 'false';
+process.env.npm_config_fund = process.env.npm_config_fund || 'false';
+process.env.npm_config_fetch_retries = process.env.npm_config_fetch_retries || '5';
+process.env.npm_config_fetch_retry_mintimeout = process.env.npm_config_fetch_retry_mintimeout || '2000';
+process.env.npm_config_fetch_retry_maxtimeout = process.env.npm_config_fetch_retry_maxtimeout || '20000';
+
 function ensureDirs() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.mkdirSync(STATE_DIR, { recursive: true });

@@ -117,6 +117,41 @@ require_rsync_v3() {
   echo "使用 rsync: $RSYNC_BIN (version $RSYNC_VER)"
 }
 
+repair_portable_node_runtime_shims() {
+  local base_dir="$1"
+  local runtime shim
+
+  for runtime in "$base_dir"/oc/app/runtime/node-mac-* "$base_dir"/app/runtime/node-mac-*; do
+    [ -d "$runtime/bin" ] || continue
+
+    echo "修复 macOS Node runtime shim: $runtime"
+    mkdir -p "$runtime/bin"
+
+    cat > "$runtime/bin/npm" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/npm/bin/npm-cli.js')
+EOF
+    cat > "$runtime/bin/npx" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/npm/bin/npx-cli.js')
+EOF
+    cat > "$runtime/bin/corepack" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/corepack/dist/corepack.js')
+EOF
+    chmod +x "$runtime/bin/npm" "$runtime/bin/npx" "$runtime/bin/corepack" 2>/dev/null || true
+
+    shim="$runtime/lib/node_modules/npm/bin/npm-cli.js"
+    if [ -f "$shim" ]; then
+      cat > "$shim" <<'EOF'
+#!/usr/bin/env node
+require('../lib/cli.js')(process)
+EOF
+      chmod +x "$shim" 2>/dev/null || true
+    fi
+  done
+}
+
 cleanup() {
   if [ "${CLEANUP_DONE:-0}" -eq 1 ]; then
     return 0
@@ -265,6 +300,8 @@ else
   echo "未检测到 rsync，回退到 cp -R（速度可能较慢）..."
   cp -R "$SYNC_SOURCE"/. "$USB_DIR"/
 fi
+
+repair_portable_node_runtime_shims "$USB_DIR"
 
 echo "正在刷新写入缓存..."
 sync 2>/dev/null || true

@@ -128,6 +128,41 @@ require_rsync_v3() {
   echo "使用 rsync: $RSYNC_BIN (version $RSYNC_VER)"
 }
 
+repair_portable_node_runtime_shims() {
+  local base_dir="$1"
+  local runtime shim
+
+  for runtime in "$base_dir"/oc/app/runtime/node-mac-* "$base_dir"/app/runtime/node-mac-*; do
+    [ -d "$runtime/bin" ] || continue
+
+    echo "修复 macOS Node runtime shim: $runtime"
+    mkdir -p "$runtime/bin"
+
+    cat > "$runtime/bin/npm" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/npm/bin/npm-cli.js')
+EOF
+    cat > "$runtime/bin/npx" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/npm/bin/npx-cli.js')
+EOF
+    cat > "$runtime/bin/corepack" <<'EOF'
+#!/usr/bin/env node
+require('../lib/node_modules/corepack/dist/corepack.js')
+EOF
+    chmod +x "$runtime/bin/npm" "$runtime/bin/npx" "$runtime/bin/corepack" 2>/dev/null || true
+
+    shim="$runtime/lib/node_modules/npm/bin/npm-cli.js"
+    if [ -f "$shim" ]; then
+      cat > "$shim" <<'EOF'
+#!/usr/bin/env node
+require('../lib/cli.js')(process)
+EOF
+      chmod +x "$shim" 2>/dev/null || true
+    fi
+  done
+}
+
 trim() {
   sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
 }
@@ -296,6 +331,8 @@ ensure_image_exists() {
     echo "  IMG_SIZE_MB=12288 ./create-img.sh \"$IMAGE_PATH\""
     exit 1
   fi
+  sync
+  repair_portable_node_runtime_shims "$GEN_TMP_MOUNT"
   sync
 
   hdiutil detach "$GEN_ATTACHED_DEV" >/dev/null

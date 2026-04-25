@@ -19,6 +19,15 @@ set "NPM_BIN=%NODE_DIR%\npm.cmd"
 set "OPENCLAW_HOME=%DATA_DIR%"
 set "OPENCLAW_STATE_DIR=%STATE_DIR%"
 set "OPENCLAW_CONFIG_PATH=%STATE_DIR%\openclaw.json"
+set "NPM_REGISTRY=https://registry.npmmirror.com"
+set "NODE_DISTURL=https://npmmirror.com/mirrors/node"
+set "npm_config_registry=%NPM_REGISTRY%"
+set "npm_config_disturl=%NODE_DISTURL%"
+set "npm_config_audit=false"
+set "npm_config_fund=false"
+set "npm_config_fetch_retries=5"
+set "npm_config_fetch_retry_mintimeout=2000"
+set "npm_config_fetch_retry_maxtimeout=20000"
 set "PATH=%NODE_DIR%;%PATH%"
 
 set "OPENCLAW_MJS=%CORE_DIR%\node_modules\openclaw\openclaw.mjs"
@@ -189,7 +198,11 @@ if "%ch_choice%"=="c" (
     echo.
     echo   Installing WeChat plugin...
     cd /d "%CORE_DIR%"
-    "%NODE_BIN%" "%OPENCLAW_MJS%" plugins install @icesword760/openclaw-wechat
+    if exist "%UCLAW_DIR%plugins\openclaw-weixin.tgz" (
+        "%NODE_BIN%" "%OPENCLAW_MJS%" plugins install "%UCLAW_DIR%plugins\openclaw-weixin.tgz"
+    ) else (
+        "%NODE_BIN%" "%OPENCLAW_MJS%" plugins install @tencent-weixin/openclaw-weixin
+    )
     echo   WeChat plugin installed!
 )
 if "%ch_choice%"=="d" (
@@ -594,7 +607,7 @@ if "%plgchoice%"=="a" (
 if "%plgchoice%"=="b" (
     echo.
     echo   Common plugins:
-    echo     @icesword760/openclaw-wechat  - WeChat
+    echo     @tencent-weixin/openclaw-weixin - WeChat
     echo     @nicepkg/openclaw-plugin-qq   - QQ community
     echo.
     set /p plgname="  Plugin name (empty to cancel): "

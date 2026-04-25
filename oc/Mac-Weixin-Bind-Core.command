@@ -39,6 +39,14 @@ mkdir -p "$STATE_DIR" "$DATA_DIR/memory" "$DATA_DIR/backups" "$DATA_DIR/logs" "$
 export OPENCLAW_HOME="$DATA_DIR"
 export OPENCLAW_STATE_DIR="$STATE_DIR"
 export OPENCLAW_CONFIG_PATH="$CONFIG_PATH"
+export npm_config_registry="https://registry.npmmirror.com"
+export npm_config_disturl="https://npmmirror.com/mirrors/node"
+export npm_config_audit="false"
+export npm_config_fund="false"
+export npm_config_fetch_retries="5"
+export npm_config_fetch_retry_mintimeout="2000"
+export npm_config_fetch_retry_maxtimeout="20000"
+echo "[UCLAW] npm registry=$npm_config_registry" >>"$LOG_FILE"
 
 cat > "$TMP_BIN_DIR/openclaw" <<WRAPEOF
 #!/bin/bash

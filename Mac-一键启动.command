@@ -71,6 +71,13 @@ fi
 
 NODE_BIN="$NODE_DIR/bin/node"
 export PATH="$NODE_DIR/bin:$PATH"
+export npm_config_registry="https://registry.npmmirror.com"
+export npm_config_disturl="https://npmmirror.com/mirrors/node"
+export npm_config_audit="false"
+export npm_config_fund="false"
+export npm_config_fetch_retries="5"
+export npm_config_fetch_retry_mintimeout="2000"
+export npm_config_fetch_retry_maxtimeout="20000"
 
 # ---- 1.5 Self-heal npm/npx/corepack shims on FAT/ExFAT USB ----
 repair_node_shim() {
