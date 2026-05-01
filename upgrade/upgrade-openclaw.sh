@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TARGET_VERSION="${1:-2026.4.14}"
+TARGET_VERSION="${1:-latest}"
 
 if [[ -x "$ROOT_DIR/oc/app/runtime/node-mac-arm64/bin/node" ]]; then
   NODE_BIN="$ROOT_DIR/oc/app/runtime/node-mac-arm64/bin/node"

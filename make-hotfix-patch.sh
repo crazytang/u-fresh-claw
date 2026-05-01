@@ -6,6 +6,7 @@ OUT_DIR="$ROOT_DIR/dist"
 BASE_REF="HEAD"
 TARGET_REF="--working"
 PATCH_NAME="u-fresh-claw-hotfix-$(date +%Y%m%d_%H%M%S)"
+WITH_PATCH=0
 
 EXCLUDES=(
   "make-hotfix-patch.sh"
@@ -26,12 +27,12 @@ Options:
   --name NAME      Output package name. Default: u-fresh-claw-hotfix-YYYYMMDD_HHMMSS
   --out DIR        Output directory. Default: ./dist
   --exclude PATH   Exclude a changed path from the patch package. Can be repeated.
+  --with-patch     Also write a git-apply patch file into the package directory.
   -h, --help       Show help.
 
 Outputs:
-  dist/<name>/<name>.patch
   dist/<name>/overlay/...      Runtime files that can be copied over an existing install
-  dist/<name>.zip              Package containing patch + overlay + README
+  dist/<name>.zip              User package containing overlay + README
   dist/<name>.zip.sha256
 
 Examples:
@@ -71,6 +72,10 @@ while [ "$#" -gt 0 ]; do
       [ -n "$exclude_path" ] || { echo "ERROR: --exclude requires a value" >&2; exit 1; }
       EXCLUDES+=("$exclude_path")
       shift 2
+      ;;
+    --with-patch)
+      WITH_PATCH=1
+      shift
       ;;
     -h|--help)
       usage
@@ -143,10 +148,12 @@ SHA_FILE="$ZIP_FILE.sha256"
 rm -rf "$PKG_DIR" "$ZIP_FILE" "$SHA_FILE"
 mkdir -p "$OVERLAY_DIR"
 
-if [ "$TARGET_REF" = "--working" ]; then
-  git diff --binary "$BASE_REF" -- "${CHANGED_FILES[@]}" > "$PATCH_FILE"
-else
-  git diff --binary "$BASE_REF" "$TARGET_REF" -- "${CHANGED_FILES[@]}" > "$PATCH_FILE"
+if [ "$WITH_PATCH" = "1" ]; then
+  if [ "$TARGET_REF" = "--working" ]; then
+    git diff --binary "$BASE_REF" -- "${CHANGED_FILES[@]}" > "$PATCH_FILE"
+  else
+    git diff --binary "$BASE_REF" "$TARGET_REF" -- "${CHANGED_FILES[@]}" > "$PATCH_FILE"
+  fi
 fi
 
 for file in "${CHANGED_FILES[@]}"; do
@@ -175,13 +182,15 @@ done
   echo
   echo "## Overlay install"
   echo "Copy the contents of overlay/ to the UFreshClaw root directory, preserving paths."
-  echo
-  echo "## Git patch install"
-  echo "From the repository root:"
-  echo
-  echo '```bash'
-  echo "git apply \"$PATCH_FILE\""
-  echo '```'
+  if [ "$WITH_PATCH" = "1" ]; then
+    echo
+    echo "## Git patch install"
+    echo "From the repository root:"
+    echo
+    echo '```bash'
+    echo "git apply \"$PATCH_FILE\""
+    echo '```'
+  fi
 } > "$PKG_DIR/README.md"
 
 mkdir -p "$OUT_DIR"
@@ -200,7 +209,9 @@ fi
 
 echo "Created:"
 echo "  Package: $ZIP_FILE"
-echo "  Patch  : $PATCH_FILE"
+if [ "$WITH_PATCH" = "1" ]; then
+  echo "  Patch  : $PATCH_FILE"
+fi
 [ -f "$SHA_FILE" ] && echo "  SHA256 : $SHA_FILE"
 echo
 echo "Included files:"

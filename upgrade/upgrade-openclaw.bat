@@ -4,7 +4,7 @@ setlocal EnableDelayedExpansion
 set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%..") do set "ROOT_DIR=%%~fI\"
 set "TARGET_VERSION=%~1"
-if "%TARGET_VERSION%"=="" set "TARGET_VERSION=2026.4.14"
+if "%TARGET_VERSION%"=="" set "TARGET_VERSION=latest"
 
 set "NODE_BIN=%ROOT_DIR%oc\app\runtime\node-win-x64\node.exe"
 if not exist "%NODE_BIN%" set "NODE_BIN=node"
@@ -15,5 +15,5 @@ if errorlevel 1 (
 )
 
 echo.
-echo Upgrade success: OpenClaw %TARGET_VERSION%
+echo Upgrade success.
 exit /b 0

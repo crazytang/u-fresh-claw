@@ -216,11 +216,6 @@ function launchWeixinBind() {
   const macBindCore = path.join(ROOT_DIR, 'Mac-Weixin-Bind-Core.command');
   const macBind = path.join(ROOT_DIR, 'Mac-Weixin-Bind.command');
   const winBindCore = path.join(ROOT_DIR, 'Windows-Weixin-Bind-Core.bat');
-  const pluginJson = path.join(STATE_DIR, 'extensions', 'openclaw-weixin', 'openclaw.plugin.json');
-
-  if (!fs.existsSync(pluginJson)) {
-    throw new Error(`WeChat plugin not installed: ${pluginJson}`);
-  }
 
   if (process.platform === 'darwin') {
     const script = fs.existsSync(macBindCore) ? macBindCore : macBind;

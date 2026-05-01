@@ -166,7 +166,7 @@ case $USE_OPENCLAW in
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "openclaw": "2026.4.9"
+    "openclaw": "2026.4.29"
   }
 }
 PKGEOF

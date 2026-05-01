@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const targetVersion = process.argv[2] || '2026.4.14';
+const requestedVersion = (process.argv[2] || '').trim();
+let targetVersion = requestedVersion;
 const registry = process.env.NPM_REGISTRY || 'https://registry.npmmirror.com';
 const scriptDir = __dirname;
 const rootDir = path.resolve(scriptDir, '..');
 const coreDir = path.join(rootDir, 'oc', 'app', 'core');
+const versionPattern = /^\d{4}\.\d{1,2}\.\d{1,2}(?:-[0-9A-Za-z.-]+)?$/;
 
 function log(msg) {
   process.stdout.write(`${msg}\n`);
@@ -23,6 +27,73 @@ function ensureFile(filePath) {
   if (!fs.existsSync(filePath)) {
     die(`Missing file: ${filePath}`);
   }
+}
+
+function fetchJson(url, redirectCount = 0) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('http:') ? http : https;
+    const req = client.get(url, { timeout: 15000 }, (res) => {
+      const location = res.headers.location;
+      if (
+        location &&
+        [301, 302, 303, 307, 308].includes(res.statusCode) &&
+        redirectCount < 5
+      ) {
+        res.resume();
+        const nextUrl = new URL(location, url).toString();
+        resolve(fetchJson(nextUrl, redirectCount + 1));
+        return;
+      }
+
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`HTTP ${res.statusCode} from ${url}`));
+          return;
+        }
+
+        try {
+          resolve(JSON.parse(data));
+        } catch (err) {
+          reject(new Error(`Invalid JSON from ${url}: ${err.message}`));
+        }
+      });
+    });
+
+    req.on('timeout', () => {
+      req.destroy(new Error(`Request timed out: ${url}`));
+    });
+    req.on('error', reject);
+  });
+}
+
+async function resolveLatestVersion() {
+  const baseUrl = registry.replace(/\/+$/, '');
+  const latestUrl = `${baseUrl}/openclaw/latest`;
+  const metadataUrl = `${baseUrl}/openclaw`;
+
+  log('Latest OpenClaw version requested. Resolving from registry...');
+
+  try {
+    const latest = await fetchJson(latestUrl);
+    if (latest?.version) {
+      return latest.version;
+    }
+  } catch (err) {
+    log(`Could not read ${latestUrl}: ${err.message}`);
+  }
+
+  const metadata = await fetchJson(metadataUrl);
+  const latestVersion = metadata?.['dist-tags']?.latest;
+  if (!latestVersion) {
+    die(`Unable to resolve latest OpenClaw version from ${metadataUrl}`);
+  }
+
+  return latestVersion;
 }
 
 function patchFile(filePath, patchers) {
@@ -131,8 +202,12 @@ function verify() {
   log(`Verification passed. OpenClaw ${installedVersion}`);
 }
 
-function main() {
-  if (!/^\d{4}\.\d{1,2}\.\d{1,2}(?:-[0-9A-Za-z.-]+)?$/.test(targetVersion)) {
+async function main() {
+  if (!targetVersion || targetVersion === 'latest') {
+    targetVersion = await resolveLatestVersion();
+  }
+
+  if (!versionPattern.test(targetVersion)) {
     die(`Invalid version format: ${targetVersion}`);
   }
 
@@ -198,4 +273,6 @@ function main() {
   log('  Windows: Windows-一键启动.bat && oc\\Windows-Diagnose.bat');
 }
 
-main();
+main().catch((err) => {
+  die(err.message);
+});

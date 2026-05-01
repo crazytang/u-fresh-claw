@@ -132,7 +132,7 @@ if "!USE_OPENCLAW!"=="usb" (
 ) else (
     echo   从国内镜像下载 OpenClaw...
     mkdir "%INSTALL_TARGET%\core" 2>nul
-    echo {"name":"u-claw-core","version":"1.0.0","private":true,"dependencies":{"openclaw":"2026.4.9"}} > "%INSTALL_TARGET%\core\package.json"
+    echo {"name":"u-claw-core","version":"1.0.0","private":true,"dependencies":{"openclaw":"2026.4.29"}} > "%INSTALL_TARGET%\core\package.json"
     cd /d "%INSTALL_TARGET%\core"
     call "!INSTALL_NPM!" install --registry=%MIRROR%
     call "!INSTALL_NPM!" install @sliverp/qqbot@latest --registry=%MIRROR%
