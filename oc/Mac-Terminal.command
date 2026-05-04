@@ -29,6 +29,14 @@ if [ ! -x "$NODE_DIR/bin/node" ] && [ -x "$APP_DIR/runtime/node-mac-x64/bin/node
 fi
 
 NODE_BIN="$NODE_DIR/bin/node"
+PY_LIB_SH="$UCLAW_DIR/lib/uclaw-python-runtime.sh"
+if [ -f "$PY_LIB_SH" ]; then
+  # shellcheck source=/dev/null
+  . "$PY_LIB_SH"
+  uclaw_python_runtime_export "$APP_DIR" "$ARCH"
+  [ ! -x "$PYTHON_BIN" ] && uclaw_bootstrap_python_mac "$APP_DIR" "$ARCH" 2>/dev/null || true
+  uclaw_python_runtime_export "$APP_DIR" "$ARCH"
+fi
 OPENCLAW_MJS="$CORE_DIR/node_modules/openclaw/openclaw.mjs"
 
 # Best-effort create state dirs (don't fail if USB is temporarily read-only)
@@ -43,7 +51,12 @@ exec "$NODE_BIN" "$OPENCLAW_MJS" "\$@"
 WRAPEOF
 chmod +x "$TMP_BIN_DIR/openclaw"
 
-export PATH="$TMP_BIN_DIR:$CORE_DIR/node_modules/.bin:$NODE_DIR/bin:$PATH"
+export PATH="$TMP_BIN_DIR:$CORE_DIR/node_modules/.bin:$PATH"
+if [ -f "$PY_LIB_SH" ]; then
+  uclaw_export_path_portable_first "${PYTHON_DIR:-}" "$NODE_DIR"
+else
+  export PATH="$NODE_DIR/bin:$PATH"
+fi
 export OPENCLAW_HOME="$DATA_DIR"
 export OPENCLAW_STATE_DIR="$STATE_DIR"
 export OPENCLAW_CONFIG_PATH="$CONFIG_PATH"

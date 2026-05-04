@@ -70,7 +70,27 @@ else
 fi
 
 NODE_BIN="$NODE_DIR/bin/node"
-export PATH="$NODE_DIR/bin:$PATH"
+
+PY_LIB_SH="$BASE_DIR/lib/uclaw-python-runtime.sh"
+if [ -f "$PY_LIB_SH" ]; then
+    # shellcheck source=/dev/null
+    . "$PY_LIB_SH"
+    uclaw_python_runtime_export "$APP_DIR" "$ARCH"
+    if [ ! -x "$PYTHON_BIN" ]; then
+        echo -e "  ${YELLOW}Python 3.12 runtime missing, downloading...${NC}"
+        if uclaw_bootstrap_python_mac "$APP_DIR" "$ARCH"; then
+            uclaw_python_runtime_export "$APP_DIR" "$ARCH"
+        fi
+    fi
+    if [ -x "$PYTHON_BIN" ]; then
+        if xattr -l "$PYTHON_BIN" 2>/dev/null | grep -q "com.apple.quarantine"; then
+            xattr -rd com.apple.quarantine "$BASE_DIR" 2>/dev/null || true
+        fi
+    fi
+    uclaw_export_path_portable_first "${PYTHON_DIR:-}" "$NODE_DIR"
+else
+    export PATH="$NODE_DIR/bin:$PATH"
+fi
 export npm_config_registry="https://registry.npmmirror.com"
 export npm_config_disturl="https://npmmirror.com/mirrors/node"
 export npm_config_audit="false"
@@ -78,6 +98,11 @@ export npm_config_fund="false"
 export npm_config_fetch_retries="5"
 export npm_config_fetch_retry_mintimeout="2000"
 export npm_config_fetch_retry_maxtimeout="20000"
+
+# pip 国内镜像（写死阿里云；与 oc/lib/uclaw-python-runtime.sh / uclaw-pip-mirror.bat 一致）
+export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+export PIP_TRUSTED_HOST="mirrors.aliyun.com"
+export PIP_DEFAULT_TIMEOUT="120"
 
 # ---- 1.5 Self-heal npm/npx/corepack shims on FAT/ExFAT USB ----
 repair_node_shim() {
@@ -167,6 +192,11 @@ fi
 
 NODE_VER=$("$NODE_BIN" --version)
 echo -e "  Node.js: ${GREEN}${NODE_VER}${NC}"
+if [ -x "${PYTHON_BIN:-}" ]; then
+    echo -e "  Python:  ${GREEN}$("$PYTHON_BIN" --version)${NC}"
+elif [ -f "$BASE_DIR/lib/uclaw-python-runtime.sh" ]; then
+    echo -e "  Python:  ${YELLOW}未安装（可运行 bash oc/setup.sh 下载）${NC}"
+fi
 echo ""
 
 # ---- 4. Init data directories ----
@@ -357,6 +387,10 @@ while [ "$CFG_PORT" -eq "$PORT" ] || lsof -i :$CFG_PORT >/dev/null 2>&1; do
 done
 
 # ---- 12. Start Config Server in background ----
+# OpenClaw / plugins spawn python3; PATH must keep bundle Python before /usr/local/bin.
+if [ -f "$PY_LIB_SH" ]; then
+    uclaw_export_path_portable_first "${PYTHON_DIR:-}" "$NODE_DIR"
+fi
 echo -e "  ${CYAN}Starting Config Center on port $CFG_PORT...${NC}"
 CONFIG_SERVER="$BASE_DIR/config-server"
 CONFIG_PORT="$CFG_PORT" GATEWAY_PORT="$PORT" "$NODE_BIN" "$CONFIG_SERVER/server.js" &

@@ -13,6 +13,7 @@ set "DATA_DIR=%UCLAW_DIR%\data"
 set "STATE_DIR=%DATA_DIR%\.openclaw"
 set "CONFIG_PATH=%STATE_DIR%\openclaw.json"
 set "NODE_DIR=%APP_DIR%\runtime\node-win-x64"
+set "PY_DIR=%APP_DIR%\runtime\python-win-amd64"
 set "NODE_BIN=%NODE_DIR%\node.exe"
 set "OPENCLAW_MJS=%CORE_DIR%\node_modules\openclaw\openclaw.mjs"
 set "TMP_BIN_DIR=%TEMP%\uclaw-open1-bin"
@@ -30,13 +31,14 @@ if not exist "%TMP_BIN_DIR%" mkdir "%TMP_BIN_DIR%" >nul 2>nul
 set "OPENCLAW_HOME=%DATA_DIR%"
 set "OPENCLAW_STATE_DIR=%STATE_DIR%"
 set "OPENCLAW_CONFIG_PATH=%CONFIG_PATH%"
+call "%UCLAW_DIR%\lib\uclaw-pip-mirror.bat"
 
 > "%TMP_BIN_DIR%\openclaw.cmd" (
   echo @echo off
   echo "%NODE_BIN%" "%OPENCLAW_MJS%" %%*
 )
 
-set "PATH=%TMP_BIN_DIR%;%CORE_DIR%\node_modules\.bin;%NODE_DIR%;%PATH%"
+call "%UCLAW_DIR%\lib\uclaw-portable-path.bat" "%PY_DIR%" "%NODE_DIR%" "%TMP_BIN_DIR%;%CORE_DIR%\node_modules\.bin"
 
 cls
 echo ========================================

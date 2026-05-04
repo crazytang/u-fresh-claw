@@ -27,7 +27,7 @@ for /f "tokens=2 delims==" %%v in ('wmic os get OSArchitecture /format:list 2^>n
 echo. >> "%LOG_FILE%"
 
 REM 1. Check Node.js
-echo [1/7] 检查 Node.js 运行环境...
+echo [1/8] 检查 Node.js 运行环境...
 set "NODE_BIN=%UCLAW_DIR%app\runtime\node-win-x64\node.exe"
 set "ERROR_COUNT=0"
 if exist "%NODE_BIN%" (
@@ -43,11 +43,25 @@ if exist "%NODE_BIN%" (
     set /a ERROR_COUNT+=1
 )
 
+REM 2. Check Python (optional portable)
+echo [2/8] 检查 Python 3.12 运行环境...
+set "PY_BIN=%UCLAW_DIR%app\runtime\python-win-amd64\python.exe"
+if exist "%PY_BIN%" (
+    echo   [OK] Python found >> "%LOG_FILE%"
+    for /f "tokens=*" %%p in ('"%PY_BIN%" --version 2^>^&1') do (
+        echo       Version: %%p >> "%LOG_FILE%"
+        echo   ✓ Python 运行环境: %%p
+    )
+) else (
+    echo   [WARN] Portable Python not found >> "%LOG_FILE%"
+    echo   ⚠ Python 运行环境: 未安装（可选，Mac 上 bash oc/setup.sh --all-platforms）
+)
+
 REM Migration shim: rename old core-win to core for existing USB users
 if exist "%UCLAW_DIR%app\core-win" if not exist "%UCLAW_DIR%app\core" ren "%UCLAW_DIR%app\core-win" core
 
-REM 2. Check core directory
-echo [2/7] 检查依赖目录...
+REM 3. Check core directory
+echo [3/8] 检查依赖目录...
 set "CORE_DIR=%UCLAW_DIR%app\core"
 if exist "%CORE_DIR%" (
     echo   [OK] core directory exists >> "%LOG_FILE%"
@@ -58,8 +72,8 @@ if exist "%CORE_DIR%" (
     set /a ERROR_COUNT+=1
 )
 
-REM 3. Check node_modules
-echo [3/7] 检查 npm 依赖包...
+REM 4. Check node_modules
+echo [4/8] 检查 npm 依赖包...
 if exist "%CORE_DIR%\node_modules" (
     echo   [OK] node_modules exists >> "%LOG_FILE%"
     echo   ✓ npm 依赖包: 已安装
@@ -69,8 +83,8 @@ if exist "%CORE_DIR%\node_modules" (
     set /a ERROR_COUNT+=1
 )
 
-REM 4. Check OpenClaw
-echo [4/7] 检查 OpenClaw 核心文件...
+REM 5. Check OpenClaw
+echo [5/8] 检查 OpenClaw 核心文件...
 set "OPENCLAW_MJS=%CORE_DIR%\node_modules\openclaw\openclaw.mjs"
 if exist "%OPENCLAW_MJS%" (
     echo   [OK] openclaw.mjs found >> "%LOG_FILE%"
@@ -82,8 +96,8 @@ if exist "%OPENCLAW_MJS%" (
     set /a ERROR_COUNT+=1
 )
 
-REM 5. Check config
-echo [5/7] 检查配置文件...
+REM 6. Check config
+echo [6/8] 检查配置文件...
 set "STATE_DIR=%UCLAW_DIR%data\.openclaw"
 if exist "%STATE_DIR%\openclaw.json" (
     echo   [OK] Config file exists >> "%LOG_FILE%"
@@ -100,8 +114,8 @@ if exist "%STATE_DIR%\openclaw.json" (
     echo   ⚠ 配置文件: 未创建（首次启动会自动创建）
 )
 
-REM 6. Check port availability
-echo [6/7] 检查端口占用...
+REM 7. Check port availability
+echo [7/8] 检查端口占用...
 set "PORT_ISSUE=0"
 for /l %%p in (18789,1,18799) do (
     netstat -an | findstr ":%%p " | findstr "LISTENING" >nul 2>&1
@@ -119,8 +133,8 @@ if "!PORT_ISSUE!"=="0" (
     echo   ✓ 端口 18789-18799: 全部可用
 )
 
-REM 7. Test OpenClaw startup
-echo [7/7] 测试 OpenClaw 启动...
+REM 8. Test OpenClaw startup
+echo [8/8] 测试 OpenClaw 启动...
 echo. >> "%LOG_FILE%"
 echo Testing OpenClaw startup: >> "%LOG_FILE%"
 echo ---------------------------------------- >> "%LOG_FILE%"

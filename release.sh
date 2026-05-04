@@ -14,6 +14,9 @@ VERSION="${VERSION%.zip}"
 OUT_DIR="${2:-$ROOT_DIR/dist}"
 NODE_VERSION="${NODE_VERSION:-v22.22.1}"
 NODE_MIRROR="${NODE_MIRROR:-https://npmmirror.com/mirrors/node}"
+PY_STANDALONE_TAG="${PY_STANDALONE_TAG:-20260303}"
+PY_CPYTHON_FULL="${PY_CPYTHON_FULL:-3.12.13}"
+PY_DOWNLOAD_BASE="https://registry.npmmirror.com/-/binary/python-build-standalone/${PY_STANDALONE_TAG}"
 INCLUDE_DARWIN_X64_RUNTIME="${INCLUDE_DARWIN_X64_RUNTIME:-1}"
 PERSIST_DARWIN_X64_RUNTIME="${PERSIST_DARWIN_X64_RUNTIME:-1}"
 if [[ "$VERSION" == u-fresh-claw-* ]]; then
@@ -84,6 +87,46 @@ ensure_stage_runtime() {
   fi
 }
 
+ensure_stage_python_mac_x64() {
+  local target_dir="$1"
+  local py_bin="$target_dir/bin/python3"
+  local asset url tmp_tar repo_py
+
+  if [ -x "$py_bin" ]; then
+    return 0
+  fi
+
+  asset="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-x86_64-apple-darwin-install_only.tar.gz"
+  url="${PY_DOWNLOAD_BASE}/${asset}"
+  tmp_tar="$(mktemp "${TMPDIR:-/tmp}/uclaw-python.darwin-x64.XXXXXX.tar.gz")"
+
+  echo "[runtime] Missing Intel macOS Python 3.12, downloading..."
+  echo "[runtime] $url"
+  if ! curl -fL "$url" -o "$tmp_tar"; then
+    rm -f "$tmp_tar"
+    echo "[WARN] Failed to download Python darwin-x64 runtime (zip will omit portable Python x64)"
+    return 0
+  fi
+
+  mkdir -p "$target_dir"
+  if ! tar -xzf "$tmp_tar" -C "$target_dir" --strip-components=1; then
+    rm -f "$tmp_tar"
+    echo "[WARN] Failed to extract Python darwin-x64 runtime"
+    return 0
+  fi
+  rm -f "$tmp_tar"
+  chmod +x "$target_dir/bin/python3" 2>/dev/null || true
+
+  if [ "$PERSIST_DARWIN_X64_RUNTIME" = "1" ]; then
+    repo_py="$ROOT_DIR/oc/app/runtime/python-mac-x64"
+    echo "[runtime] Caching Python darwin-x64 runtime to repo: $repo_py"
+    mkdir -p "$(dirname "$repo_py")"
+    rm -rf "$repo_py"
+    mkdir -p "$repo_py"
+    rsync -a "$target_dir"/ "$repo_py"/
+  fi
+}
+
 repair_portable_node_runtime_shims() {
   local base_dir="$1"
   local runtime shim
@@ -144,8 +187,9 @@ rsync -a "$ROOT_DIR/" "$STAGE_DIR/" \
   --exclude '/release.sh' \
 
 if [ "$INCLUDE_DARWIN_X64_RUNTIME" = "1" ]; then
-  echo "[2/5] Ensuring macOS x64 runtime"
+  echo "[2/5] Ensuring macOS x64 runtime (Node + Python)"
   ensure_stage_runtime "darwin-x64" "$STAGE_DIR/oc/app/runtime/node-mac-x64"
+  ensure_stage_python_mac_x64 "$STAGE_DIR/oc/app/runtime/python-mac-x64"
 else
   echo "[2/5] Skipping macOS x64 runtime (INCLUDE_DARWIN_X64_RUNTIME=0)"
 fi

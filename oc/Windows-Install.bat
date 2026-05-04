@@ -16,6 +16,7 @@ set "INSTALL_TARGET=%USERPROFILE%\.uclaw"
 set "MIRROR=https://registry.npmmirror.com"
 set "NODE_MIRROR=https://npmmirror.com/mirrors/node"
 set "NODE_VER=v22.14.0"
+call "%~dp0lib\uclaw-pip-mirror.bat"
 
 REM ---- Step 1: Check environment ----
 echo   [1/4] 检查环境...
@@ -120,6 +121,15 @@ if "!USE_NODE!"=="usb" (
     set "INSTALL_NPM=%INSTALL_TARGET%\runtime\node-win-x64\npm.cmd"
     echo   Node.js 下载安装完成!
 )
+echo   安装 Python 3.12 ^(可选^)...
+set "USB_PY=%APP_DIR%\runtime\python-win-amd64\python.exe"
+if exist "%USB_PY%" (
+    echo   从 U 盘复制 Python...
+    xcopy /s /e /q /y "%APP_DIR%\runtime\python-win-amd64" "%INSTALL_TARGET%\runtime\python-win-amd64\" >nul
+    echo   Python 安装完成!
+) else (
+    echo   未找到 U 盘内 Python，跳过 ^(可在 Mac 上运行 bash oc/setup.sh --all-platforms^)
+)
 echo.
 
 REM ---- Step 5: Copy/Download OpenClaw ----
@@ -132,7 +142,7 @@ if "!USE_OPENCLAW!"=="usb" (
 ) else (
     echo   从国内镜像下载 OpenClaw...
     mkdir "%INSTALL_TARGET%\core" 2>nul
-    echo {"name":"u-claw-core","version":"1.0.0","private":true,"dependencies":{"openclaw":"2026.4.29"}} > "%INSTALL_TARGET%\core\package.json"
+    echo {"name":"u-claw-core","version":"1.0.0","private":true,"dependencies":{"openclaw":"2026.4.23"}} > "%INSTALL_TARGET%\core\package.json"
     cd /d "%INSTALL_TARGET%\core"
     call "!INSTALL_NPM!" install --registry=%MIRROR%
     call "!INSTALL_NPM!" install @sliverp/qqbot@latest --registry=%MIRROR%
@@ -157,10 +167,20 @@ echo title U盘虾
 echo set "DIR=%%~dp0"
 echo set "NODE_BIN=%%DIR%%runtime\node-win-x64\node.exe"
 echo if not exist "%%NODE_BIN%%" set "NODE_BIN=node"
+echo set "PY_DIR=%%DIR%%runtime\python-win-amd64"
+echo set "ND_DIR=%%DIR%%runtime\node-win-x64"
+echo if exist "%%PY_DIR%%\python.exe" (
+echo   set "PATH=%%PY_DIR%%;%%ND_DIR%%;%%ND_DIR%%\node_modules\.bin;%%PATH%%"
+echo ^) else (
+echo   set "PATH=%%ND_DIR%%;%%ND_DIR%%\node_modules\.bin;%%PATH%%"
+echo ^)
 echo set "OPENCLAW_MJS=%%DIR%%core\node_modules\openclaw\openclaw.mjs"
 echo set "OPENCLAW_HOME=%%DIR%%data"
 echo set "OPENCLAW_STATE_DIR=%%DIR%%data\.openclaw"
 echo set "OPENCLAW_CONFIG_PATH=%%DIR%%data\.openclaw\openclaw.json"
+echo set "PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/"
+echo set "PIP_TRUSTED_HOST=mirrors.aliyun.com"
+echo set "PIP_DEFAULT_TIMEOUT=120"
 echo.
 echo REM Find available port
 echo set PORT=18789

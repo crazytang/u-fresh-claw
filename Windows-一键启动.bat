@@ -40,6 +40,7 @@ set "CORE_DIR=%APP_DIR%\core"
 set "DATA_DIR=%BASE_DIR%\data"
 set "STATE_DIR=%DATA_DIR%\.openclaw"
 set "NODE_DIR=%APP_DIR%\runtime\node-win-x64"
+set "PY_DIR=%APP_DIR%\runtime\python-win-amd64"
 set "NODE_BIN=%NODE_DIR%\node.exe"
 set "NPM_BIN=%NODE_DIR%\npm.cmd"
 
@@ -57,6 +58,7 @@ set "npm_config_fund=false"
 set "npm_config_fetch_retries=5"
 set "npm_config_fetch_retry_mintimeout=2000"
 set "npm_config_fetch_retry_maxtimeout=20000"
+call "%BASE_DIR%\lib\uclaw-pip-mirror.bat"
 
 REM Check runtime
 if not exist "%NODE_BIN%" (
@@ -68,9 +70,14 @@ if not exist "%NODE_BIN%" (
 
 for /f "tokens=*" %%v in ('"%NODE_BIN%" --version') do set NODE_VER=%%v
 echo   Node.js: %NODE_VER%
+if exist "%PY_DIR%\python.exe" (
+    for /f "tokens=*" %%p in ('"%PY_DIR%\python.exe" --version') do echo   Python: %%p
+) else (
+    echo   Python: 未安装 ^(可选：在 Mac 上 bash oc/setup.sh --all-platforms 准备 U 盘^)
+)
 echo.
 
-set "PATH=%NODE_DIR%;%NODE_DIR%\node_modules\.bin;%PATH%"
+call "%BASE_DIR%\lib\uclaw-portable-path.bat" "%PY_DIR%" "%NODE_DIR%" ""
 
 REM Init data directories
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%"

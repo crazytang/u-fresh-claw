@@ -33,7 +33,20 @@ else
 fi
 NODE_BIN="$NODE_DIR/bin/node"
 NPM_BIN="$NODE_DIR/bin/npm"
-export PATH="$NODE_DIR/bin:$PATH"
+PY_LIB_SH="$UCLAW_DIR/lib/uclaw-python-runtime.sh"
+if [ -f "$PY_LIB_SH" ]; then
+    # shellcheck source=/dev/null
+    . "$PY_LIB_SH"
+    uclaw_python_runtime_export "$APP_DIR" "$ARCH"
+    if [ ! -x "$PYTHON_BIN" ]; then
+        echo -e "  ${YELLOW}Python 3.12 runtime missing, downloading...${NC}"
+        uclaw_bootstrap_python_mac "$APP_DIR" "$ARCH" || true
+        uclaw_python_runtime_export "$APP_DIR" "$ARCH"
+    fi
+    uclaw_export_path_portable_first "${PYTHON_DIR:-}" "$NODE_DIR"
+else
+    export PATH="$NODE_DIR/bin:$PATH"
+fi
 export npm_config_registry="https://registry.npmmirror.com"
 export npm_config_disturl="https://npmmirror.com/mirrors/node"
 export npm_config_audit="false"
@@ -138,7 +151,15 @@ show_menu() {
     echo -e "  ║   Portable AI Agent                   ║"
     echo -e "  ╚══════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  Node: ${GREEN}${NODE_VER}${NC}  配置: ${CFG_STATUS}"
+    PY_VER_LINE=""
+    if [ -x "${PYTHON_BIN:-}" ]; then
+        PY_VER_LINE=$("$PYTHON_BIN" --version 2>/dev/null || echo "")
+    fi
+    if [ -n "$PY_VER_LINE" ]; then
+        echo -e "  Node: ${GREEN}${NODE_VER}${NC}  Python: ${GREEN}${PY_VER_LINE}${NC}  配置: ${CFG_STATUS}"
+    else
+        echo -e "  Node: ${GREEN}${NODE_VER}${NC}  配置: ${CFG_STATUS}"
+    fi
     echo ""
     echo -e "  ${WHITE}${BOLD}── 配置 ──────────────────────────────${NC}"
     echo -e "  ${GREEN}[1]${NC}  配置向导（选模型、填 API Key）"
@@ -202,7 +223,7 @@ do_dashboard() {
         fi
     done
 
-    local TOKEN=$(python3 -c "import json,os; p='$CONFIG_PATH'; d=json.load(open(p)) if os.path.exists(p) else {}; print(d.get('gateway',{}).get('auth',{}).get('token','uclaw'))" 2>/dev/null || echo "uclaw")
+    local TOKEN=$("${PYTHON_BIN:-python3}" -c "import json,os; p='$CONFIG_PATH'; d=json.load(open(p)) if os.path.exists(p) else {}; print(d.get('gateway',{}).get('auth',{}).get('token','uclaw'))" 2>/dev/null || echo "uclaw")
 
     "$NODE_BIN" "$OPENCLAW_MJS" gateway run --allow-unconfigured --force --port $PORT &
     local PID=$!

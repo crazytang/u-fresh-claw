@@ -14,6 +14,10 @@ RUNTIME_DIR="$APP_DIR/runtime"
 MIRROR="https://registry.npmmirror.com"
 NODE_MIRROR="https://npmmirror.com/mirrors/node"
 NODE_VERSION="v22.22.1"
+# CPython 3.12 — astral-sh/python-build-standalone，仅 npmmirror 二进制镜像（版本由 PY_STANDALONE_TAG 固定）
+PY_STANDALONE_TAG="20260303"
+PY_CPYTHON_FULL="3.12.13"
+PY_DOWNLOAD_BASE="https://registry.npmmirror.com/-/binary/python-build-standalone/${PY_STANDALONE_TAG}"
 ALL_PLATFORMS=false
 [ "$1" = "--all-platforms" ] && ALL_PLATFORMS=true
 
@@ -70,6 +74,47 @@ else
     fi
 fi
 
+# ---- 1a. Download Python 3.12 (current Mac platform) ----
+PY_DIR_NAME="python-mac-${NODE_DIR_NAME#node-mac-}"
+PY_TARGET="$RUNTIME_DIR/$PY_DIR_NAME"
+case "$PLATFORM" in
+    darwin-arm64) PY_ASSET="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-aarch64-apple-darwin-install_only.tar.gz" ;;
+    darwin-x64) PY_ASSET="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-x86_64-apple-darwin-install_only.tar.gz" ;;
+esac
+
+write_uclaw_pip_conf_in() {
+    local d="$1"
+    [ -x "$d/bin/python3" ] || return 0
+    cat >"$d/uclaw-pip.conf" <<'UCLAWPIPEOF'
+[global]
+index-url = https://mirrors.aliyun.com/pypi/simple/
+trusted-host = mirrors.aliyun.com
+timeout = 120
+UCLAWPIPEOF
+}
+
+if [ -x "$PY_TARGET/bin/python3" ]; then
+    echo -e "  ${GREEN}✓${NC} Python 3.12 ($PLATFORM) 已存在，跳过下载"
+else
+    echo -e "  ${CYAN}↓${NC} 下载 Python ${PY_CPYTHON_FULL} ($PLATFORM)..."
+    mkdir -p "$PY_TARGET"
+    PY_URL="$PY_DOWNLOAD_BASE/$PY_ASSET"
+    echo "    $PY_URL"
+    TMP_PY="/tmp/$PY_ASSET"
+    if curl -fSL "$PY_URL" -o "$TMP_PY"; then
+        tar xzf "$TMP_PY" -C "$PY_TARGET" --strip-components=1
+        rm -f "$TMP_PY"
+        chmod +x "$PY_TARGET/bin/python3" 2>/dev/null || true
+    fi
+    if [ -x "$PY_TARGET/bin/python3" ]; then
+        echo -e "  ${GREEN}✓${NC} Python ($PLATFORM) 下载完成"
+    else
+        echo -e "  ${YELLOW}⚠${NC} Python 下载失败（不影响 Node/OpenClaw）"
+        rm -f "$TMP_PY"
+    fi
+fi
+write_uclaw_pip_conf_in "$PY_TARGET"
+
 # ---- 1b. Download Node.js for Windows (only with --all-platforms) ----
 if [ "$ALL_PLATFORMS" = "true" ]; then
     WIN_NODE_TARGET="$RUNTIME_DIR/node-win-x64"
@@ -100,6 +145,57 @@ if [ "$ALL_PLATFORMS" = "true" ]; then
             echo -e "  ${CYAN}⚠${NC}  Windows runtime下载失败 (不影响当前平台使用)"
         fi
     fi
+
+    # Python: other macOS arch + Windows (install_only)
+    if [ "$PLATFORM" = "darwin-arm64" ]; then
+        OTHER_MAC_PY="$RUNTIME_DIR/python-mac-x64"
+        OTHER_MAC_ASSET="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-x86_64-apple-darwin-install_only.tar.gz"
+    else
+        OTHER_MAC_PY="$RUNTIME_DIR/python-mac-arm64"
+        OTHER_MAC_ASSET="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-aarch64-apple-darwin-install_only.tar.gz"
+    fi
+    if [ -x "$OTHER_MAC_PY/bin/python3" ]; then
+        echo -e "  ${GREEN}✓${NC} Python (other mac arch) 已存在，跳过"
+    else
+        echo -e "  ${CYAN}↓${NC} 下载 Python ${PY_CPYTHON_FULL} (另一架构 macOS)..."
+        mkdir -p "$OTHER_MAC_PY"
+        OURL="$PY_DOWNLOAD_BASE/$OTHER_MAC_ASSET"
+        OTMP="/tmp/$OTHER_MAC_ASSET"
+        if curl -fSL "$OURL" -o "$OTMP"; then
+            tar xzf "$OTMP" -C "$OTHER_MAC_PY" --strip-components=1
+            rm -f "$OTMP"
+            chmod +x "$OTHER_MAC_PY/bin/python3" 2>/dev/null || true
+            echo -e "  ${GREEN}✓${NC} Python (other mac arch) 完成"
+        else
+            echo -e "  ${YELLOW}⚠${NC} Python (other mac arch) 下载失败"
+            rm -f "$OTMP"
+        fi
+    fi
+    write_uclaw_pip_conf_in "$OTHER_MAC_PY"
+
+    WIN_PY_TARGET="$RUNTIME_DIR/python-win-amd64"
+    WIN_PY_ASSET="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-x86_64-pc-windows-msvc-install_only.tar.gz"
+    if [ -f "$WIN_PY_TARGET/python.exe" ]; then
+        echo -e "  ${GREEN}✓${NC} Python (win-amd64) 已存在，跳过"
+    else
+        echo -e "  ${CYAN}↓${NC} 下载 Python ${PY_CPYTHON_FULL} (win-amd64)..."
+        mkdir -p "$WIN_PY_TARGET"
+        WURL="$PY_DOWNLOAD_BASE/$WIN_PY_ASSET"
+        WTAR="/tmp/py-win-amd64-$$.tar.gz"
+        if curl -fSL "$WURL" -o "$WTAR"; then
+            if tar -xzf "$WTAR" -C "$WIN_PY_TARGET" --strip-components=1; then
+                rm -f "$WTAR"
+            else
+                echo -e "    ${RED}✗ 解压 Windows Python 失败${NC}"
+                rm -f "$WTAR"
+            fi
+        fi
+        if [ -f "$WIN_PY_TARGET/python.exe" ]; then
+            echo -e "  ${GREEN}✓${NC} Python (win-amd64) 下载完成"
+        else
+            echo -e "  ${CYAN}⚠${NC} Windows Python 下载或解压失败 (不影响当前平台)"
+        fi
+    fi
 fi
 
 # ---- 2. Install OpenClaw ----
@@ -117,7 +213,7 @@ else
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "openclaw": "2026.4.29"
+    "openclaw": "2026.4.23"
   }
 }
 PKGJSON
@@ -170,7 +266,7 @@ echo -e "    Windows: 双击 ${CYAN}Windows-Start.bat${NC}"
 echo ""
 echo -e "  目录结构:"
 echo -e "    app/core/       ← OpenClaw + 依赖"
-echo -e "    app/runtime/    ← Node.js $NODE_VERSION"
+echo -e "    app/runtime/    ← Node.js $NODE_VERSION + Python ${PY_CPYTHON_FULL}"
 echo -e "    data/           ← 运行后自动生成"
 echo ""
 echo -e "  ${CYAN}提示: 制作跨平台 U 盘请用 bash setup.sh --all-platforms${NC}"

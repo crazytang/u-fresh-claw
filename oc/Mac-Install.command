@@ -21,6 +21,11 @@ DIM='\033[2m'
 NODE_VER="v22.14.0"
 MIRROR="https://registry.npmmirror.com"
 NODE_MIRROR="https://npmmirror.com/mirrors/node"
+PY_STANDALONE_TAG="20260303"
+PY_CPYTHON_FULL="3.12.13"
+PY_DOWNLOAD_BASE="https://registry.npmmirror.com/-/binary/python-build-standalone/${PY_STANDALONE_TAG}"
+PY_LIB_SH="$UCLAW_DIR/lib/uclaw-python-runtime.sh"
+[ -f "$PY_LIB_SH" ] && . "$PY_LIB_SH"
 
 clear
 echo ""
@@ -143,6 +148,45 @@ case $USE_NODE in
         ;;
 esac
 
+PY_PLATFORM="python-${NODE_PLATFORM#node-}"
+PY_INSTALL_DIR="$INSTALL_TARGET/runtime/$PY_PLATFORM"
+USB_PY="$APP_DIR/runtime/$PY_PLATFORM/bin/python3"
+echo -e "  ${CYAN}安装 Python 3.12 ($PY_PLATFORM)...${NC}"
+if [ -x "$USB_PY" ]; then
+    echo -e "  ${CYAN}从 U 盘复制 Python...${NC}"
+    mkdir -p "$PY_INSTALL_DIR"
+    cp -R "$APP_DIR/runtime/$PY_PLATFORM/"* "$PY_INSTALL_DIR/"
+    chmod +x "$PY_INSTALL_DIR/bin/python3" 2>/dev/null || true
+    echo -e "  ${GREEN}Python 安装完成 ✓${NC}"
+else
+    PY_ASSET=""
+    case "$ARCH" in
+        arm64) PY_ASSET="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-aarch64-apple-darwin-install_only.tar.gz" ;;
+        *) PY_ASSET="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-x86_64-apple-darwin-install_only.tar.gz" ;;
+    esac
+    echo -e "  ${CYAN}从 GitHub 下载 Python ${PY_CPYTHON_FULL}...${NC}"
+    mkdir -p "$PY_INSTALL_DIR"
+    PTMP="/tmp/$PY_ASSET"
+    if curl -fSL "${PY_DOWNLOAD_BASE}/${PY_ASSET}" -o "$PTMP" 2>/dev/null && tar -xzf "$PTMP" -C "$PY_INSTALL_DIR" --strip-components=1; then
+        rm -f "$PTMP"
+        chmod +x "$PY_INSTALL_DIR/bin/python3" 2>/dev/null || true
+        echo -e "  ${GREEN}Python 下载安装完成 ✓${NC}"
+    else
+        echo -e "  ${YELLOW}Python 下载失败（可稍后运行 bash oc/setup.sh）${NC}"
+        rm -f "$PTMP"
+        rm -rf "$PY_INSTALL_DIR"/bin "$PY_INSTALL_DIR"/lib 2>/dev/null || true
+    fi
+fi
+
+# Prefer bundled Python/Node over Homebrew /usr/local for any pip/python in this session.
+if [ -f "$PY_LIB_SH" ]; then
+    PY_ROOT_FOR_PATH=""
+    ND_ROOT_FOR_PATH=""
+    [ -x "$PY_INSTALL_DIR/bin/python3" ] && PY_ROOT_FOR_PATH="$PY_INSTALL_DIR"
+    [ -x "$NODE_INSTALL_DIR/bin/node" ] && ND_ROOT_FOR_PATH="$NODE_INSTALL_DIR"
+    uclaw_export_path_portable_first "$PY_ROOT_FOR_PATH" "$ND_ROOT_FOR_PATH"
+fi
+
 echo ""
 
 # ---- Step 4: Copy/Download OpenClaw ----
@@ -166,7 +210,7 @@ case $USE_OPENCLAW in
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "openclaw": "2026.4.29"
+    "openclaw": "2026.4.23"
   }
 }
 PKGEOF
@@ -201,9 +245,15 @@ cat > "$INSTALL_TARGET/start.command" << 'STARTEOF'
 DIR="$(cd "$(dirname "$0")" && pwd)"
 ARCH=$(uname -m)
 NODE_PLATFORM="node-mac-$( [ "$ARCH" = "arm64" ] && echo "arm64" || echo "x64" )"
+PYTHON_PLATFORM="python-mac-$( [ "$ARCH" = "arm64" ] && echo "arm64" || echo "x64" )"
 
 NODE_BIN="$DIR/runtime/$NODE_PLATFORM/bin/node"
 [ ! -f "$NODE_BIN" ] && NODE_BIN="$(which node)"
+
+export PATH="$DIR/runtime/$PYTHON_PLATFORM/bin:$DIR/runtime/$NODE_PLATFORM/bin:$PATH"
+export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+export PIP_TRUSTED_HOST="mirrors.aliyun.com"
+export PIP_DEFAULT_TIMEOUT="120"
 
 CORE_DIR="$DIR/core"
 OPENCLAW_MJS="$CORE_DIR/node_modules/openclaw/openclaw.mjs"

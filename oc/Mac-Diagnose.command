@@ -31,7 +31,7 @@ Generated: $(date)
 EOF
 
 # 1. Check Node.js
-echo "[1/6] Checking Node.js runtime..."
+echo "[1/7] Checking Node.js runtime..."
 ARCH=$(uname -m)
 if [ "$ARCH" = "arm64" ]; then
     NODE_BIN="$UCLAW_DIR/app/runtime/node-mac-arm64/bin/node"
@@ -49,13 +49,36 @@ else
     echo -e "  ${RED}✗${NC} Node.js: NOT FOUND"
 fi
 
+# 2. Check Python 3.12 (portable)
+echo "[2/7] Checking Python 3.12 runtime..."
+if [ "$ARCH" = "arm64" ]; then
+    PY_BIN="$UCLAW_DIR/app/runtime/python-mac-arm64/bin/python3"
+else
+    PY_BIN="$UCLAW_DIR/app/runtime/python-mac-x64/bin/python3"
+fi
+if [ ! -x "$PY_BIN" ] && [ -x "$UCLAW_DIR/app/runtime/python-mac-arm64/bin/python3" ]; then
+    PY_BIN="$UCLAW_DIR/app/runtime/python-mac-arm64/bin/python3"
+fi
+if [ ! -x "$PY_BIN" ] && [ -x "$UCLAW_DIR/app/runtime/python-mac-x64/bin/python3" ]; then
+    PY_BIN="$UCLAW_DIR/app/runtime/python-mac-x64/bin/python3"
+fi
+if [ -x "$PY_BIN" ]; then
+    echo "  [OK] Python found" >> "$LOG_FILE"
+    echo "      Version: $($PY_BIN --version)" >> "$LOG_FILE"
+    echo -e "  ${GREEN}✓${NC} Python: Found ($("$PY_BIN" --version))"
+else
+    echo "  [WARN] Portable Python not found" >> "$LOG_FILE"
+    echo "      Path: $PY_BIN" >> "$LOG_FILE"
+    echo -e "  ${YELLOW}⚠${NC} Python: NOT FOUND (可选: bash oc/setup.sh)"
+fi
+
 # Migration shim: rename old core-mac to core for existing USB users
 if [ -d "$UCLAW_DIR/app/core-mac" ] && [ ! -d "$UCLAW_DIR/app/core" ]; then
     mv "$UCLAW_DIR/app/core-mac" "$UCLAW_DIR/app/core"
 fi
 
-# 2. Check core directory
-echo "[2/6] Checking core directory..."
+# 3. Check core directory
+echo "[3/7] Checking core directory..."
 CORE_DIR="$UCLAW_DIR/app/core"
 if [ -d "$CORE_DIR" ]; then
     echo "  [OK] core directory exists" >> "$LOG_FILE"
@@ -65,8 +88,8 @@ else
     echo -e "  ${RED}✗${NC} core: NOT FOUND"
 fi
 
-# 3. Check node_modules
-echo "[3/6] Checking dependencies..."
+# 4. Check node_modules
+echo "[4/7] Checking dependencies..."
 if [ -d "$CORE_DIR/node_modules" ]; then
     echo "  [OK] node_modules exists" >> "$LOG_FILE"
     echo -e "  ${GREEN}✓${NC} Dependencies: Found"
@@ -75,8 +98,8 @@ else
     echo -e "  ${RED}✗${NC} Dependencies: NOT FOUND"
 fi
 
-# 4. Check OpenClaw
-echo "[4/6] Checking OpenClaw..."
+# 5. Check OpenClaw
+echo "[5/7] Checking OpenClaw..."
 OPENCLAW_MJS="$CORE_DIR/node_modules/openclaw/openclaw.mjs"
 if [ -f "$OPENCLAW_MJS" ]; then
     echo "  [OK] openclaw.mjs found" >> "$LOG_FILE"
@@ -87,8 +110,8 @@ else
     echo -e "  ${RED}✗${NC} OpenClaw: NOT FOUND"
 fi
 
-# 5. Check port availability
-echo "[5/6] Checking port 18789..."
+# 6. Check port availability
+echo "[6/7] Checking port 18789..."
 if lsof -i:18789 >/dev/null 2>&1; then
     echo "  [WARNING] Port 18789 is in use" >> "$LOG_FILE"
     lsof -i:18789 >> "$LOG_FILE" 2>&1
@@ -98,8 +121,8 @@ else
     echo -e "  ${GREEN}✓${NC} Port 18789: Available"
 fi
 
-# 6. Test OpenClaw startup
-echo "[6/6] Testing OpenClaw startup..."
+# 7. Test OpenClaw startup
+echo "[7/7] Testing OpenClaw startup..."
 echo "" >> "$LOG_FILE"
 echo "Testing OpenClaw startup:" >> "$LOG_FILE"
 echo "----------------------------------------" >> "$LOG_FILE"
