@@ -24,6 +24,7 @@ ALL_PLATFORMS=false
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
 echo ""
@@ -117,7 +118,7 @@ else
 fi
 write_uclaw_pip_conf_in "$PY_TARGET"
 
-# ---- 1b. Download Node.js for Windows (only with --all-platforms) ----
+# ---- 1b. Extra runtimes (--all-platforms): Win Node (x64+arm64), other-mac Node, cross Python ----
 if [ "$ALL_PLATFORMS" = "true" ]; then
     WIN_NODE_TARGET="$RUNTIME_DIR/node-win-x64"
     if [ -f "$WIN_NODE_TARGET/node.exe" ]; then
@@ -174,6 +175,32 @@ if [ "$ALL_PLATFORMS" = "true" ]; then
             echo -e "  ${GREEN}✓${NC} Node.js (win-arm64) 下载完成"
         else
             echo -e "  ${CYAN}⚠${NC}  Windows ARM64 Node 下载失败 (不影响当前平台使用)"
+        fi
+    fi
+
+    # Node.js: other macOS arch (darwin-arm64 <-> darwin-x64 for portable U 盘 / 两台 Mac)
+    if [ "$PLATFORM" = "darwin-arm64" ]; then
+        OTHER_MAC_NODE_PF="darwin-x64"
+        OTHER_MAC_NODE_DIR="$RUNTIME_DIR/node-mac-x64"
+    else
+        OTHER_MAC_NODE_PF="darwin-arm64"
+        OTHER_MAC_NODE_DIR="$RUNTIME_DIR/node-mac-arm64"
+    fi
+    if [ -f "$OTHER_MAC_NODE_DIR/bin/node" ]; then
+        echo -e "  ${GREEN}✓${NC} Node.js ($OTHER_MAC_NODE_PF) 已存在，跳过下载"
+    else
+        echo -e "  ${CYAN}↓${NC} 下载 Node.js $NODE_VERSION ($OTHER_MAC_NODE_PF) - 另一架构 macOS..."
+        mkdir -p "$OTHER_MAC_NODE_DIR"
+        OTHER_NODE_URL="$NODE_MIRROR/$NODE_VERSION/node-$NODE_VERSION-$OTHER_MAC_NODE_PF.tar.gz"
+        echo "    $OTHER_NODE_URL"
+        if curl -fSL "$OTHER_NODE_URL" | tar xz -C "$OTHER_MAC_NODE_DIR" --strip-components=1; then
+            if [ -f "$OTHER_MAC_NODE_DIR/bin/node" ]; then
+                echo -e "  ${GREEN}✓${NC} Node.js ($OTHER_MAC_NODE_PF) 下载完成"
+            else
+                echo -e "  ${CYAN}⚠${NC}  Node (other mac arch) 解压异常 (不影响当前平台)"
+            fi
+        else
+            echo -e "  ${CYAN}⚠${NC}  Node (other mac arch) 下载失败 (不影响当前平台)"
         fi
     fi
 
