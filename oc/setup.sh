@@ -268,7 +268,7 @@ else
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "openclaw": "2026.5.4"
+    "openclaw": "2026.4.23"
   }
 }
 PKGJSON

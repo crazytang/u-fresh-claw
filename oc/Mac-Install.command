@@ -18,7 +18,7 @@ NC='\033[0m'
 BOLD='\033[1m'
 DIM='\033[2m'
 
-NODE_VER="v22.14.0"
+NODE_VER="v24.15.0"
 MIRROR="https://registry.npmmirror.com"
 NODE_MIRROR="https://npmmirror.com/mirrors/node"
 PY_STANDALONE_TAG="20260303"
@@ -210,7 +210,7 @@ case $USE_OPENCLAW in
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "openclaw": "2026.5.4"
+    "openclaw": "2026.4.23"
   }
 }
 PKGEOF

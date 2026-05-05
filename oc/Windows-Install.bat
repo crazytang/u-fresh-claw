@@ -18,7 +18,7 @@ for %%I in ("%PY_DIR%") do set "RUNTIME_PY_DIR_NAME=%%~nxI"
 set "INSTALL_TARGET=%USERPROFILE%\.uclaw"
 set "MIRROR=https://registry.npmmirror.com"
 set "NODE_MIRROR=https://npmmirror.com/mirrors/node"
-set "NODE_VER=v22.14.0"
+set "NODE_VER=v24.15.0"
 call "%~dp0lib\uclaw-pip-mirror.bat"
 
 REM ---- Step 1: Check environment ----
@@ -145,7 +145,7 @@ if "!USE_OPENCLAW!"=="usb" (
 ) else (
     echo   从国内镜像下载 OpenClaw...
     mkdir "%INSTALL_TARGET%\core" 2>nul
-    echo {"name":"u-claw-core","version":"1.0.0","private":true,"dependencies":{"openclaw":"2026.5.4"}} > "%INSTALL_TARGET%\core\package.json"
+    echo {"name":"u-claw-core","version":"1.0.0","private":true,"dependencies":{"openclaw":"2026.4.23"}} > "%INSTALL_TARGET%\core\package.json"
     cd /d "%INSTALL_TARGET%\core"
     call "!INSTALL_NPM!" install --registry=%MIRROR%
     call "!INSTALL_NPM!" install @sliverp/qqbot@latest --registry=%MIRROR%
