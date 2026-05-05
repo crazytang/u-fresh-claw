@@ -12,6 +12,9 @@ echo.
 
 set "UCLAW_DIR=%~dp0"
 set "APP_DIR=%UCLAW_DIR%app"
+call "%~dp0lib\uclaw-windows-runtime-dirs.bat"
+for %%I in ("%NODE_DIR%") do set "RUNTIME_NODE_DIR_NAME=%%~nxI"
+for %%I in ("%PY_DIR%") do set "RUNTIME_PY_DIR_NAME=%%~nxI"
 set "INSTALL_TARGET=%USERPROFILE%\.uclaw"
 set "MIRROR=https://registry.npmmirror.com"
 set "NODE_MIRROR=https://npmmirror.com/mirrors/node"
@@ -22,7 +25,7 @@ REM ---- Step 1: Check environment ----
 echo   [1/4] 检查环境...
 
 set "USE_NODE=none"
-set "USB_NODE=%APP_DIR%\runtime\node-win-x64\node.exe"
+set "USB_NODE=%NODE_DIR%\node.exe"
 
 if exist "%USB_NODE%" (
     for /f "tokens=*" %%v in ('"%USB_NODE%" --version') do echo   Node.js: 使用 U 盘内的 %%v
@@ -85,19 +88,19 @@ REM ---- Step 4: Copy/Download Node.js ----
 echo   [3/4] 安装 Node.js...
 
 if "!USE_NODE!"=="usb" (
-    echo   从 U 盘复制 Node.js...
-    xcopy /s /e /q /y "%APP_DIR%\runtime\node-win-x64" "%INSTALL_TARGET%\runtime\node-win-x64\" >nul
-    set "INSTALL_NODE=%INSTALL_TARGET%\runtime\node-win-x64\node.exe"
-    set "INSTALL_NPM=%INSTALL_TARGET%\runtime\node-win-x64\npm.cmd"
+    echo   从 U 盘复制 Node.js ^(!RUNTIME_NODE_DIR_NAME!^)...
+    xcopy /s /e /q /y "%NODE_DIR%" "%INSTALL_TARGET%\runtime\!RUNTIME_NODE_DIR_NAME!\" >nul
+    set "INSTALL_NODE=%INSTALL_TARGET%\runtime\!RUNTIME_NODE_DIR_NAME!\node.exe"
+    set "INSTALL_NPM=%INSTALL_TARGET%\runtime\!RUNTIME_NODE_DIR_NAME!\npm.cmd"
     echo   Node.js 安装完成!
 ) else if "!USE_NODE!"=="system" (
     set "INSTALL_NODE=node"
     set "INSTALL_NPM=npm"
     echo   使用系统 Node.js
 ) else (
-    echo   从国内镜像下载 Node.js %NODE_VER%...
-    set "NODE_ZIP=node-%NODE_VER%-win-x64.zip"
-    set "NODE_URL=%NODE_MIRROR%/%NODE_VER%/!NODE_ZIP!"
+    echo   从国内镜像下载 Node.js %NODE_VER% ^(!UCLAW_NODE_ZIP_PLATFORM!^)...
+    set "NODE_ZIP=node-!NODE_VER!-!UCLAW_NODE_ZIP_PLATFORM!.zip"
+    set "NODE_URL=!NODE_MIRROR!/!NODE_VER!/!NODE_ZIP!"
     echo   URL: !NODE_URL!
     echo.
 
@@ -111,21 +114,21 @@ if "!USE_NODE!"=="usb" (
     )
 
     echo   解压中...
-    mkdir "%INSTALL_TARGET%\runtime\node-win-x64" 2>nul
+    mkdir "%INSTALL_TARGET%\runtime\!RUNTIME_NODE_DIR_NAME!" 2>nul
     powershell -command "Expand-Archive -Path '%TEMP%\!NODE_ZIP!' -DestinationPath '%TEMP%\node-extract' -Force"
-    xcopy /s /e /q /y "%TEMP%\node-%NODE_VER%-win-x64\*" "%INSTALL_TARGET%\runtime\node-win-x64\" >nul
+    xcopy /s /e /q /y "%TEMP%\node-extract\node-!NODE_VER!-!UCLAW_NODE_ZIP_PLATFORM!\*" "%INSTALL_TARGET%\runtime\!RUNTIME_NODE_DIR_NAME!\" >nul
     rmdir /s /q "%TEMP%\node-extract" 2>nul
     del "%TEMP%\!NODE_ZIP!" 2>nul
 
-    set "INSTALL_NODE=%INSTALL_TARGET%\runtime\node-win-x64\node.exe"
-    set "INSTALL_NPM=%INSTALL_TARGET%\runtime\node-win-x64\npm.cmd"
+    set "INSTALL_NODE=%INSTALL_TARGET%\runtime\!RUNTIME_NODE_DIR_NAME!\node.exe"
+    set "INSTALL_NPM=%INSTALL_TARGET%\runtime\!RUNTIME_NODE_DIR_NAME!\npm.cmd"
     echo   Node.js 下载安装完成!
 )
 echo   安装 Python 3.12 ^(可选^)...
-set "USB_PY=%APP_DIR%\runtime\python-win-amd64\python.exe"
-if exist "%USB_PY%" (
-    echo   从 U 盘复制 Python...
-    xcopy /s /e /q /y "%APP_DIR%\runtime\python-win-amd64" "%INSTALL_TARGET%\runtime\python-win-amd64\" >nul
+set "USB_PY=!PY_DIR!\python.exe"
+if exist "!USB_PY!" (
+    echo   从 U 盘复制 Python ^(!RUNTIME_PY_DIR_NAME!^)...
+    xcopy /s /e /q /y "!PY_DIR!" "%INSTALL_TARGET%\runtime\!RUNTIME_PY_DIR_NAME!\" >nul
     echo   Python 安装完成!
 ) else (
     echo   未找到 U 盘内 Python，跳过 ^(可在 Mac 上运行 bash oc/setup.sh --all-platforms^)
@@ -142,7 +145,7 @@ if "!USE_OPENCLAW!"=="usb" (
 ) else (
     echo   从国内镜像下载 OpenClaw...
     mkdir "%INSTALL_TARGET%\core" 2>nul
-    echo {"name":"u-claw-core","version":"1.0.0","private":true,"dependencies":{"openclaw":"2026.4.23"}} > "%INSTALL_TARGET%\core\package.json"
+    echo {"name":"u-claw-core","version":"1.0.0","private":true,"dependencies":{"openclaw":"2026.5.4"}} > "%INSTALL_TARGET%\core\package.json"
     cd /d "%INSTALL_TARGET%\core"
     call "!INSTALL_NPM!" install --registry=%MIRROR%
     call "!INSTALL_NPM!" install @sliverp/qqbot@latest --registry=%MIRROR%
@@ -165,10 +168,10 @@ echo setlocal EnableDelayedExpansion
 echo chcp 65001 ^>nul 2^>^&1
 echo title U盘虾
 echo set "DIR=%%~dp0"
-echo set "NODE_BIN=%%DIR%%runtime\node-win-x64\node.exe"
+echo set "NODE_BIN=%%DIR%%runtime\%RUNTIME_NODE_DIR_NAME%\node.exe"
 echo if not exist "%%NODE_BIN%%" set "NODE_BIN=node"
-echo set "PY_DIR=%%DIR%%runtime\python-win-amd64"
-echo set "ND_DIR=%%DIR%%runtime\node-win-x64"
+echo set "PY_DIR=%%DIR%%runtime\%RUNTIME_PY_DIR_NAME%"
+echo set "ND_DIR=%%DIR%%runtime\%RUNTIME_NODE_DIR_NAME%"
 echo if exist "%%PY_DIR%%\python.exe" (
 echo   set "PATH=%%PY_DIR%%;%%ND_DIR%%;%%ND_DIR%%\node_modules\.bin;%%PATH%%"
 echo ^) else (

@@ -118,10 +118,16 @@ function resolveBundledRuntime() {
   const candidates = [];
 
   if (process.platform === 'win32') {
-    candidates.push({
-      node: path.join(runtimeDir, 'node-win-x64', 'node.exe'),
-      npmCli: path.join(runtimeDir, 'node-win-x64', 'node_modules', 'npm', 'bin', 'npm-cli.js')
-    });
+    const winOrder =
+      process.arch === 'arm64'
+        ? ['node-win-arm64', 'node-win-x64']
+        : ['node-win-x64', 'node-win-arm64'];
+    for (const dir of winOrder) {
+      candidates.push({
+        node: path.join(runtimeDir, dir, 'node.exe'),
+        npmCli: path.join(runtimeDir, dir, 'node_modules', 'npm', 'bin', 'npm-cli.js')
+      });
+    }
   } else if (process.platform === 'darwin') {
     if (process.arch === 'arm64') {
       candidates.push({

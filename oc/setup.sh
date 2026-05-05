@@ -13,7 +13,7 @@ CORE_DIR="$APP_DIR/core"
 RUNTIME_DIR="$APP_DIR/runtime"
 MIRROR="https://registry.npmmirror.com"
 NODE_MIRROR="https://npmmirror.com/mirrors/node"
-NODE_VERSION="v22.22.1"
+NODE_VERSION="v24.15.0"
 # CPython 3.12 — astral-sh/python-build-standalone，仅 npmmirror 二进制镜像（版本由 PY_STANDALONE_TAG 固定）
 PY_STANDALONE_TAG="20260303"
 PY_CPYTHON_FULL="3.12.13"
@@ -37,6 +37,8 @@ OS=$(uname -s)
 ARCH=$(uname -m)
 
 if [ "$OS" = "Darwin" ]; then
+    # uname -m: arm64 = Apple Silicon; x86_64 = Intel. Maps to official Node tarball
+    # names (darwin-arm64 / darwin-x64) and local dirs node-mac-* under app/runtime/.
     if [ "$ARCH" = "arm64" ]; then
         PLATFORM="darwin-arm64"
         NODE_DIR_NAME="node-mac-arm64"
@@ -146,6 +148,35 @@ if [ "$ALL_PLATFORMS" = "true" ]; then
         fi
     fi
 
+    WIN_ARM_NODE_TARGET="$RUNTIME_DIR/node-win-arm64"
+    if [ -f "$WIN_ARM_NODE_TARGET/node.exe" ]; then
+        echo -e "  ${GREEN}✓${NC} Node.js (win-arm64) 已存在，跳过下载"
+    else
+        echo -e "  ${CYAN}↓${NC} 下载 Node.js $NODE_VERSION (win-arm64)..."
+        mkdir -p "$WIN_ARM_NODE_TARGET"
+
+        WIN_ARM_NODE_URL="$NODE_MIRROR/$NODE_VERSION/node-$NODE_VERSION-win-arm64.zip"
+        echo "    $WIN_ARM_NODE_URL"
+
+        TMP_ZIP_ARM="/tmp/node-win-arm64-$$.zip"
+        curl -fSL "$WIN_ARM_NODE_URL" -o "$TMP_ZIP_ARM"
+
+        if command -v unzip >/dev/null 2>&1; then
+            unzip -q "$TMP_ZIP_ARM" -d "/tmp/node-win-arm64-extract-$$"
+            cp -r "/tmp/node-win-arm64-extract-$$"/node-$NODE_VERSION-win-arm64/* "$WIN_ARM_NODE_TARGET/"
+            rm -rf "/tmp/node-win-arm64-extract-$$"
+        else
+            echo -e "    ${RED}✗ unzip not found, skipping Windows ARM64 runtime${NC}"
+        fi
+        rm -f "$TMP_ZIP_ARM"
+
+        if [ -f "$WIN_ARM_NODE_TARGET/node.exe" ]; then
+            echo -e "  ${GREEN}✓${NC} Node.js (win-arm64) 下载完成"
+        else
+            echo -e "  ${CYAN}⚠${NC}  Windows ARM64 Node 下载失败 (不影响当前平台使用)"
+        fi
+    fi
+
     # Python: other macOS arch + Windows (install_only)
     if [ "$PLATFORM" = "darwin-arm64" ]; then
         OTHER_MAC_PY="$RUNTIME_DIR/python-mac-x64"
@@ -196,6 +227,30 @@ if [ "$ALL_PLATFORMS" = "true" ]; then
             echo -e "  ${CYAN}⚠${NC} Windows Python 下载或解压失败 (不影响当前平台)"
         fi
     fi
+
+    WIN_ARM_PY_TARGET="$RUNTIME_DIR/python-win-arm64"
+    WIN_ARM_PY_ASSET="cpython-${PY_CPYTHON_FULL}+${PY_STANDALONE_TAG}-aarch64-pc-windows-msvc-install_only.tar.gz"
+    if [ -f "$WIN_ARM_PY_TARGET/python.exe" ]; then
+        echo -e "  ${GREEN}✓${NC} Python (win-arm64) 已存在，跳过"
+    else
+        echo -e "  ${CYAN}↓${NC} 下载 Python ${PY_CPYTHON_FULL} (win-arm64)..."
+        mkdir -p "$WIN_ARM_PY_TARGET"
+        WURL_ARM="$PY_DOWNLOAD_BASE/$WIN_ARM_PY_ASSET"
+        WTAR_ARM="/tmp/py-win-arm64-$$.tar.gz"
+        if curl -fSL "$WURL_ARM" -o "$WTAR_ARM"; then
+            if tar -xzf "$WTAR_ARM" -C "$WIN_ARM_PY_TARGET" --strip-components=1; then
+                rm -f "$WTAR_ARM"
+            else
+                echo -e "    ${RED}✗ 解压 Windows ARM64 Python 失败${NC}"
+                rm -f "$WTAR_ARM"
+            fi
+        fi
+        if [ -f "$WIN_ARM_PY_TARGET/python.exe" ]; then
+            echo -e "  ${GREEN}✓${NC} Python (win-arm64) 下载完成"
+        else
+            echo -e "  ${CYAN}⚠${NC} Windows ARM64 Python 下载或解压失败 (不影响当前平台)"
+        fi
+    fi
 fi
 
 # ---- 2. Install OpenClaw ----
@@ -213,7 +268,7 @@ else
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "openclaw": "2026.4.23"
+    "openclaw": "2026.5.4"
   }
 }
 PKGJSON
@@ -253,6 +308,22 @@ if [ -d "$SKILLS_CN" ] && [ -d "$SKILLS_TARGET" ]; then
         fi
     done
     echo -e "  ${GREEN}✓${NC} 中国技能安装完成 (+$SKILL_COUNT 个)"
+fi
+
+# ---- 5. Install skills-ufc (same layout as skills-cn) ----
+SKILLS_UFC="$SCRIPT_DIR/skills-ufc"
+
+if [ -d "$SKILLS_UFC" ] && [ -d "$SKILLS_TARGET" ]; then
+    echo -e "  ${CYAN}↓${NC} 安装 UFC 技能 (skills-ufc)..."
+    SKILL_UFC_COUNT=0
+    for skill_dir in "$SKILLS_UFC"/*/; do
+        skill_name=$(basename "$skill_dir")
+        if [ ! -d "$SKILLS_TARGET/$skill_name" ]; then
+            cp -R "$skill_dir" "$SKILLS_TARGET/$skill_name"
+            SKILL_UFC_COUNT=$((SKILL_UFC_COUNT + 1))
+        fi
+    done
+    echo -e "  ${GREEN}✓${NC} UFC 技能安装完成 (+$SKILL_UFC_COUNT 个)"
 fi
 
 # ---- Done ----

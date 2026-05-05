@@ -28,7 +28,9 @@ echo. >> "%LOG_FILE%"
 
 REM 1. Check Node.js
 echo [1/8] 检查 Node.js 运行环境...
-set "NODE_BIN=%UCLAW_DIR%app\runtime\node-win-x64\node.exe"
+set "APP_DIR=%UCLAW_DIR%app"
+call "%UCLAW_DIR%lib\uclaw-windows-runtime-dirs.bat"
+set "NODE_BIN=%NODE_DIR%\node.exe"
 set "ERROR_COUNT=0"
 if exist "%NODE_BIN%" (
     echo   [OK] Node.js found >> "%LOG_FILE%"
@@ -45,7 +47,7 @@ if exist "%NODE_BIN%" (
 
 REM 2. Check Python (optional portable)
 echo [2/8] 检查 Python 3.12 运行环境...
-set "PY_BIN=%UCLAW_DIR%app\runtime\python-win-amd64\python.exe"
+set "PY_BIN=%PY_DIR%\python.exe"
 if exist "%PY_BIN%" (
     echo   [OK] Python found >> "%LOG_FILE%"
     for /f "tokens=*" %%p in ('"%PY_BIN%" --version 2^>^&1') do (

@@ -12,8 +12,7 @@ if exist "%APP_DIR%\core-win" if not exist "%APP_DIR%\core" ren "%APP_DIR%\core-
 set "CORE_DIR=%APP_DIR%\core"
 set "DATA_DIR=%UCLAW_DIR%data"
 set "STATE_DIR=%DATA_DIR%\.openclaw"
-set "NODE_DIR=%UCLAW_DIR%app\runtime\node-win-x64"
-set "PY_DIR=%APP_DIR%\runtime\python-win-amd64"
+call "%UCLAW_DIR%lib\uclaw-windows-runtime-dirs.bat"
 set "NODE_BIN=%NODE_DIR%\node.exe"
 set "NPM_BIN=%NODE_DIR%\npm.cmd"
 
@@ -486,7 +485,7 @@ for /f "tokens=*" %%v in ('"%NODE_BIN%" -e "console.log(require('%CORE_DIR:\=/%/
 echo   Current version: %CUR_VER%
 
 echo   Fetching latest version...
-for /f "tokens=*" %%v in ('"%NODE_BIN%" -e "const https=require('https');https.get('https://registry.npmmirror.com/openclaw/2026.4.23',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{console.log(JSON.parse(d).version)}catch(e){console.log('error')}})})" 2^>nul') do set LATEST_VER=%%v
+for /f "tokens=*" %%v in ('"%NODE_BIN%" -e "const https=require('https');https.get('https://registry.npmmirror.com/openclaw/2026.5.4',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{console.log(JSON.parse(d).version)}catch(e){console.log('error')}})})" 2^>nul') do set LATEST_VER=%%v
 
 if "!LATEST_VER!"=="" (
     echo   Could not fetch latest version - network issue?
@@ -519,7 +518,7 @@ if /i not "!doupdate!"=="y" (
 echo.
 echo   Updating...
 cd /d "%CORE_DIR%"
-call "%NPM_BIN%" install openclaw@2026.4.23 --registry=https://registry.npmmirror.com
+call "%NPM_BIN%" install openclaw@2026.5.4 --registry=https://registry.npmmirror.com
 for /f "tokens=*" %%v in ('"%NODE_BIN%" -e "console.log(require('./node_modules/openclaw/package.json').version)"') do set NEW_VER=%%v
 echo.
 echo   Updated! %CUR_VER% - %NEW_VER%

@@ -39,8 +39,7 @@ if exist "%APP_DIR%\core-win" if not exist "%APP_DIR%\core" ren "%APP_DIR%\core-
 set "CORE_DIR=%APP_DIR%\core"
 set "DATA_DIR=%BASE_DIR%\data"
 set "STATE_DIR=%DATA_DIR%\.openclaw"
-set "NODE_DIR=%APP_DIR%\runtime\node-win-x64"
-set "PY_DIR=%APP_DIR%\runtime\python-win-amd64"
+call "%BASE_DIR%\lib\uclaw-windows-runtime-dirs.bat"
 set "NODE_BIN=%NODE_DIR%\node.exe"
 set "NPM_BIN=%NODE_DIR%\npm.cmd"
 
@@ -63,7 +62,7 @@ call "%BASE_DIR%\lib\uclaw-pip-mirror.bat"
 REM Check runtime
 if not exist "%NODE_BIN%" (
     echo   [ERROR] Node.js runtime not found
-    echo   Please ensure app\runtime\node-win-x64 is complete
+    echo   Please ensure app\runtime contains node-win-arm64 ^(ARM64^) or node-win-x64 ^(x64^)
     pause
     exit /b 1
 )
@@ -113,6 +112,16 @@ if not exist "%CORE_DIR%\node_modules" (
 
 REM Cleanup old instance (same USB path only)
 call :stop_old_instances
+
+REM Sync portable tools.exec.pathPrepend in openclaw.json (current path + platform runtimes)
+set "SYNC_JS=%BASE_DIR%\lib\uclaw-sync-openclaw-exec-path-prepend.js"
+set "NODE_PREPEND="
+if exist "%NODE_BIN%" set "NODE_PREPEND=%NODE_DIR%"
+set "PY_PREPEND="
+if exist "%PY_DIR%\python.exe" set "PY_PREPEND=%PY_DIR%"
+if exist "%OPENCLAW_MJS%" if exist "%OPENCLAW_CONFIG_PATH%" if exist "%SYNC_JS%" (
+    "%NODE_BIN%" "%SYNC_JS%" "%OPENCLAW_CONFIG_PATH%" "%NODE_PREPEND%" "%PY_PREPEND%"
+)
 
 REM Find available port
 set PORT=18789

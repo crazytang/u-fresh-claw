@@ -44,7 +44,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 NODE_MIRROR="https://npmmirror.com/mirrors/node"
-NODE_VERSION="v22.22.1"
+NODE_VERSION="v24.15.0"
 
 echo ""
 echo -e "${CYAN}"
@@ -361,6 +361,27 @@ stop_old_instance() {
 }
 
 stop_old_instance
+
+# ---- 9.5 Sync portable exec pathPrepend in openclaw.json (current USB path + arch) ----
+sync_openclaw_exec_path_prepend() {
+    local openclaw_mjs="$CORE_DIR/node_modules/openclaw/openclaw.mjs"
+    [ -f "$openclaw_mjs" ] || return 0
+    [ -f "$CONFIG_FILE" ] || return 0
+
+    local node_prepend="" py_prepend=""
+    if [ -x "$NODE_DIR/bin/node" ]; then
+        node_prepend="$NODE_DIR/bin"
+    fi
+    if [ -n "${PYTHON_DIR:-}" ] && [ -x "$PYTHON_DIR/bin/python3" ]; then
+        py_prepend="$PYTHON_DIR/bin"
+    fi
+
+    local sync_js="$BASE_DIR/lib/uclaw-sync-openclaw-exec-path-prepend.js"
+    [ -f "$sync_js" ] || return 0
+    "$NODE_BIN" "$sync_js" "$CONFIG_FILE" "$node_prepend" "$py_prepend"
+}
+
+sync_openclaw_exec_path_prepend
 
 # ---- 10. Find available port ----
 PORT=18789

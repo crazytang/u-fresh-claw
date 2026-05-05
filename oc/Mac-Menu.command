@@ -55,7 +55,7 @@ export npm_config_fetch_retries="5"
 export npm_config_fetch_retry_mintimeout="2000"
 export npm_config_fetch_retry_maxtimeout="20000"
 NODE_MIRROR="https://npmmirror.com/mirrors/node"
-NODE_VERSION="v22.22.1"
+NODE_VERSION="v24.15.0"
 
 # Auto-bootstrap runtime when portable package omits oversized node binary.
 if [ ! -f "$NODE_BIN" ]; then
