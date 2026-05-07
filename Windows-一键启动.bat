@@ -123,6 +123,13 @@ if exist "%OPENCLAW_MJS%" if exist "%OPENCLAW_CONFIG_PATH%" if exist "%SYNC_JS%"
     "%NODE_BIN%" "%SYNC_JS%" "%OPENCLAW_CONFIG_PATH%" "%NODE_PREPEND%" "%PY_PREPEND%"
 )
 
+REM Sync env.WORK_DATAS_DIR (%UCLAW_DIR%\workdatas, absolute path resolved in script)
+set "WORK_DATAS_SYNC_JS=%BASE_DIR%\lib\uclaw-sync-openclaw-env-work-datas-dir.js"
+if not exist "%UCLAW_DIR%workdatas" mkdir "%UCLAW_DIR%workdatas"
+if exist "%OPENCLAW_MJS%" if exist "%OPENCLAW_CONFIG_PATH%" if exist "%WORK_DATAS_SYNC_JS%" (
+    "%NODE_BIN%" "%WORK_DATAS_SYNC_JS%" "%OPENCLAW_CONFIG_PATH%" "%UCLAW_DIR%workdatas"
+)
+
 REM Find available port
 set PORT=18789
 :check_port

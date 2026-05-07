@@ -1,4 +1,5 @@
 # runtime/user data
+workdatas/
 oc/data/
 oc/RESET_REPORT_*.md
 oc/data_reset_snapshot_*.txt

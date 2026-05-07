@@ -383,6 +383,24 @@ sync_openclaw_exec_path_prepend() {
 
 sync_openclaw_exec_path_prepend
 
+# ---- 9.6 Sync env.WORK_DATAS_DIR (portable workdatas next to launcher) ----
+sync_openclaw_env_work_datas_dir() {
+    local openclaw_mjs="$CORE_DIR/node_modules/openclaw/openclaw.mjs"
+    [ -f "$openclaw_mjs" ] || return 0
+    [ -f "$CONFIG_FILE" ] || return 0
+
+    local workdatas="$UCLAW_DIR/workdatas"
+    mkdir -p "$workdatas" || return 0
+    local abs
+    abs="$(cd "$workdatas" && pwd)" || return 0
+
+    local sync_js="$BASE_DIR/lib/uclaw-sync-openclaw-env-work-datas-dir.js"
+    [ -f "$sync_js" ] || return 0
+    "$NODE_BIN" "$sync_js" "$CONFIG_FILE" "$abs"
+}
+
+sync_openclaw_env_work_datas_dir
+
 # ---- 10. Find available port ----
 PORT=18789
 while lsof -i :$PORT >/dev/null 2>&1; do
