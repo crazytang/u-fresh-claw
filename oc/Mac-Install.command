@@ -236,7 +236,7 @@ fi
 
 # ---- Copy launch scripts ----
 for f in Config.html U-Claw.html; do
-    [ -f "$UCLAW_DIR/$f" ] && cp "$UCLAW_DIR/$f" "$INSTALL_TARGET/"
+    [ -f "$UCLAW_DIR/config-server/public/$f" ] && cp "$UCLAW_DIR/config-server/public/$f" "$INSTALL_TARGET/"
 done
 
 # ---- Create launch script ----
