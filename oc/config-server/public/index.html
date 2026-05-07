@@ -7,23 +7,33 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
-  --bg: #0a0f17;
-  --bg2: #0e1522;
-  --card: #131a26;
-  --card2: #171f2d;
-  --line: #2d3748;
-  --text: #e8edf5;
-  --muted: #95a0b3;
-  --brand: #ff6b35;
-  --ok: #4caf50;
-  --bad: #f44336;
+  /* Feishu-like light theme */
+  --bg: #f5f6f7;
+  --bg2: #eef2ff;
+  --card: #ffffff;
+  --card2: #f9fafb;
+  --line: #e5e6eb;
+  --text: #1f2329;
+  --muted: #646a73;
+  --brand: #3370ff;
+  --ok: #00b42a;
+  --bad: #f53f3f;
+
+  --chip-bg: #f2f3f5;
+  --chip-text: #2b2f36;
+  --btn-bg: #ffffff;
+  --btn-bg-hover: #f7f8fa;
+  --btn-text: #1f2329;
+  --shadow: 0 10px 28px rgba(31, 35, 41, 0.08);
+  --shadow-2: 0 16px 46px rgba(31, 35, 41, 0.16);
 }
 body {
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   background:
-    radial-gradient(circle at 20% 0%, #18263d 0%, transparent 35%),
-    radial-gradient(circle at 100% 0%, #21172e 0%, transparent 30%),
-    linear-gradient(180deg, var(--bg2) 0%, var(--bg) 60%);
+    radial-gradient(1200px 560px at 10% -10%, rgba(51,112,255,0.18) 0%, transparent 60%),
+    radial-gradient(900px 520px at 95% 0%, rgba(35, 183, 229, 0.14) 0%, transparent 55%),
+    radial-gradient(900px 520px at 60% 110%, rgba(255, 210, 77, 0.12) 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg2) 0%, var(--bg) 55%);
   color: var(--text);
   min-height: 100vh;
 }
@@ -32,29 +42,30 @@ h1 { text-align: center; font-size: 1.9em; margin-bottom: 4px; letter-spacing: 0
 h1 .lobster { color: var(--brand); }
 .subtitle { text-align: center; color: var(--muted); margin-bottom: 20px; font-size: 0.95em; }
 
-.steps { display: flex; margin-bottom: 20px; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
-.step { flex: 1; text-align: center; padding: 11px 8px; font-size: 0.85em; color: #7f8aa0; cursor: pointer; transition: all 0.2s; }
-.step.active { color: var(--brand); background: rgba(255,107,53,0.08); font-weight: 600; }
+.steps { display: flex; margin-bottom: 20px; background: rgba(255,255,255,0.86); border-radius: 12px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 8px 20px rgba(31, 35, 41, 0.05); }
+.step { flex: 1; text-align: center; padding: 11px 8px; font-size: 0.85em; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+.step.active { color: var(--brand); background: rgba(51,112,255,0.10); font-weight: 700; }
 .step.done { color: var(--ok); }
-.step .num { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; background: #2a3240; color: #9ea9be; font-size: 0.8em; margin-right: 4px; }
+.step .num { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; background: #e8e9ee; color: #5f6672; font-size: 0.8em; margin-right: 4px; }
 .step.active .num { background: var(--brand); color: #fff; }
 .step.done .num { background: var(--ok); color: #fff; }
 
 .section {
-  background: linear-gradient(180deg, var(--card2), var(--card));
+  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.98));
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 22px;
   margin-bottom: 14px;
   display: none;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
 }
 .section.active { display: block; }
 .section h2 { color: var(--brand); font-size: 1.12em; margin-bottom: 6px; }
 .section .desc { color: var(--muted); font-size: 0.88em; margin-bottom: 14px; }
 
 .status-bar {
-  background: #151e2c;
+  background: rgba(255,255,255,0.90);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px 14px;
@@ -62,6 +73,7 @@ h1 .lobster { color: var(--brand); }
   display: flex;
   align-items: center;
   gap: 10px;
+  box-shadow: 0 10px 24px rgba(31, 35, 41, 0.06);
 }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .dot.on { background: var(--ok); animation: pulse 2s infinite; }
@@ -85,16 +97,17 @@ h1 .lobster { color: var(--brand); }
 }
 .status-text { flex: 1; font-size: 0.9em; }
 .status-text a { color: var(--brand); text-decoration: none; }
+.status-text a:hover { text-decoration: underline; }
 .status-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .status-chip {
-  border: 1px solid #3a4458;
-  background: #121a27;
-  color: #d8e1f4;
+  border: 1px solid var(--line);
+  background: var(--chip-bg);
+  color: var(--chip-text);
   border-radius: 999px;
   padding: 5px 10px;
   font-size: 0.78em;
 }
-.status-chip.muted { color: #a6b3ca; }
+.status-chip.muted { color: var(--muted); }
 .status-actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -103,9 +116,9 @@ h1 .lobster { color: var(--brand); }
   margin-top: 2px;
 }
 .status-btn {
-  border: 1px solid #42506a;
-  background: linear-gradient(180deg, #27354d, #1e2a3f);
-  color: #eef4ff;
+  border: 1px solid var(--line);
+  background: var(--btn-bg);
+  color: var(--btn-text);
   border-radius: 11px;
   padding: 12px 18px;
   font-size: 0.96em;
@@ -118,37 +131,23 @@ h1 .lobster { color: var(--brand); }
   width: 100%;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow:
-    0 0 0 1px rgba(113, 186, 255, 0.28),
-    0 0 12px rgba(113, 186, 255, 0.22),
-    0 0 24px rgba(113, 186, 255, 0.12),
-    0 8px 22px rgba(0, 0, 0, 0.25);
-  text-shadow: 0 0 6px rgba(184, 223, 255, 0.25);
-  animation: neonBreath 3.8s ease-in-out infinite;
+  box-shadow: 0 8px 18px rgba(31, 35, 41, 0.08);
   white-space: nowrap;
   text-align: center;
 }
 .status-btn:hover {
-  border-color: #92c4ff;
-  background: linear-gradient(180deg, #2e3f5b, #24354d);
+  border-color: rgba(51,112,255,0.45);
+  background: var(--btn-bg-hover);
   transform: translateY(-1px);
-  box-shadow:
-    0 0 0 1px rgba(130, 200, 255, 0.45),
-    0 0 18px rgba(130, 200, 255, 0.35),
-    0 0 34px rgba(130, 200, 255, 0.2),
-    0 10px 26px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 22px rgba(31, 35, 41, 0.12);
 }
-.status-btn.danger:hover { border-color: #e55a25; color: #ffd0bf; }
+.status-btn.danger { border-color: rgba(245,63,63,0.35); color: #b42318; background: rgba(245,63,63,0.06); }
+.status-btn.danger:hover { border-color: rgba(245,63,63,0.55); background: rgba(245,63,63,0.09); }
 .status-btn.primary {
-  border-color: rgba(255, 127, 82, 0.75);
-  background: linear-gradient(180deg, #ff8d64, #ff6b35);
+  border-color: rgba(51,112,255,0.55);
+  background: linear-gradient(180deg, #4c88ff, #3370ff);
   color: #ffffff;
-  box-shadow:
-    0 0 0 1px rgba(255, 162, 126, 0.45),
-    0 0 16px rgba(255, 124, 82, 0.35),
-    0 0 30px rgba(255, 107, 53, 0.2),
-    0 10px 28px rgba(255, 107, 53, 0.35);
-  text-shadow: 0 0 7px rgba(255, 237, 227, 0.32);
+  box-shadow: 0 12px 26px rgba(51,112,255,0.28);
 }
 .status-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
 
@@ -156,48 +155,96 @@ h1 .lobster { color: var(--brand); }
   .status-btn { animation: none; }
 }
 
-.model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.model-card { background: #1b2432; border: 2px solid #2f3a4b; border-radius: 10px; padding: 14px; cursor: pointer; transition: all 0.15s; position: relative; }
-.model-card:hover { border-color: #52617a; transform: translateY(-1px); }
-.model-card.selected { border-color: var(--brand); background: rgba(255,107,53,0.06); }
-.model-card h4 { color: #fff; font-size: 0.95em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.model-card p { color: #a3afc3; font-size: 0.78em; line-height: 1.4; }
+.step1-model-form-row {
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+}
+.step1-model-form-row > .model-grid { flex: 1 1 auto; margin-bottom: 0; min-width: 0; }
+.step1-model-form-row > .form-grid { flex: 0 0 360px; align-self: flex-start; }
+.model-modes {
+  display: flex;
+  margin: 10px 0 12px;
+  background: rgba(255,255,255,0.78);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.model-mode {
+  flex: 1;
+  text-align: center;
+  padding: 10px 10px;
+  font-size: 0.85em;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+.model-mode.active {
+  color: var(--brand);
+  background: rgba(51,112,255,0.10);
+  font-weight: 700;
+}
+.model-mode .num {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 50%;
+  background: #e8e9ee;
+  color: #5f6672;
+  font-size: 0.8em;
+  margin-right: 6px;
+}
+.model-mode.active .num { background: var(--brand); color: #fff; }
+@media (max-width: 980px) {
+  .step1-model-form-row { flex-direction: column; }
+  .step1-model-form-row > .form-grid { flex-basis: auto; width: 100%; }
+}
+
+.model-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
+.model-card { background: rgba(255,255,255,0.92); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.15s; position: relative; box-shadow: 0 8px 18px rgba(31, 35, 41, 0.06); }
+.model-card:hover { border-color: rgba(51,112,255,0.35); transform: translateY(-1px); box-shadow: 0 12px 24px rgba(31, 35, 41, 0.10); }
+.model-card.selected { border-color: rgba(51,112,255,0.75); background: rgba(51,112,255,0.06); }
+.model-card h4 { color: var(--text); font-size: 0.95em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.model-card p { color: var(--muted); font-size: 0.78em; line-height: 1.4; display: flex; justify-content: space-between; }
 .check { position: absolute; top: 8px; right: 10px; color: var(--brand); font-size: 1.2em; display: none; }
 .model-card.selected .check { display: block; }
 .tag { font-size: 0.68em; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
-.tag.hot { background: rgba(255,107,53,0.2); color: var(--brand); }
-.tag.cn { background: rgba(33,150,243,0.2); color: #2196f3; }
+.tag.hot { background: rgba(51,112,255,0.14); color: var(--brand); }
+.tag.cn { background: rgba(51,112,255,0.12); color: var(--brand); }
 .tag.fast { background: rgba(156,39,176,0.2); color: #ce93d8; }
 .tag.cheap { background: rgba(255,193,7,0.2); color: #ffd54f; }
-.buy-link { display: inline-flex; align-items: center; gap: 4px; color: var(--brand); text-decoration: none; font-size: 0.82em; margin-top: 6px; }
+.buy-link { display: inline-flex; align-items: center; gap: 4px; color: var(--brand); text-decoration: none; font-size: 0.82em; margin-left: 30px; }
 .buy-link:hover { text-decoration: underline; }
 
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
 .form-group { margin-bottom: 12px; }
-label { display: block; color: #d4dbee; margin-bottom: 6px; font-size: 0.9em; }
+label { display: block; color: #2b2f36; margin-bottom: 6px; font-size: 0.9em; }
 input[type="text"], input[type="password"] {
-  width: 100%; padding: 11px 14px; background: #151d2a; border: 1px solid #3a455b; border-radius: 8px;
-  color: #fff; font-size: 0.95em; outline: none; transition: border-color 0.2s;
+  width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.96); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); font-size: 0.95em; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 6px 16px rgba(31, 35, 41, 0.04);
 }
-input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,0.18); }
+input:focus { border-color: rgba(51,112,255,0.65); box-shadow: 0 0 0 3px rgba(51,112,255,0.16); }
 .input-wrap { position: relative; }
 .input-wrap input { padding-right: 44px; }
 .toggle-pw {
   position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-  background: none; border: none; color: #888; cursor: pointer; font-size: 0.85em;
+  background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.85em;
 }
-.toggle-pw:hover { color: #ccc; }
+.toggle-pw:hover { color: var(--text); }
 .hint { color: #9eabbe; font-size: 0.8em; margin-top: 6px; line-height: 1.5; }
 
-.btn-row { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
+.btn-row { display: flex; justify-content: flex-end; flex-wrap: wrap; margin-bottom: 10px;}
 .btn {
   display: inline-block; padding: 11px 24px; border: none; border-radius: 10px;
   font-size: 0.92em; cursor: pointer; transition: all 0.15s; font-weight: 600;
 }
-.btn-primary { background: linear-gradient(180deg, #ff7f52, #ff6b35); color: #fff; box-shadow: 0 6px 18px rgba(255,107,53,0.25); }
-.btn-primary:hover { background: linear-gradient(180deg, #ff8b61, #f36433); }
-.btn-secondary { background: #253044; color: #d9e1f2; }
-.btn-secondary:hover { background: #2f3b52; }
+.btn-primary { background: linear-gradient(180deg, #4c88ff, #3370ff); color: #fff; box-shadow: 0 10px 22px rgba(51,112,255,0.22); }
+.btn-primary:hover { background: linear-gradient(180deg, #5a92ff, #2f68f4); transform: translateY(-1px); }
+.btn-secondary { background: #f2f3f5; color: #1f2329; border: 1px solid var(--line); }
+.btn-secondary:hover { background: #eaecef; }
 
 .agent-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .agent-item {
@@ -219,30 +266,32 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
 }
 
 .channel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-.channel-card { background: #1b2534; border: 1px solid var(--line); border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s; }
-.channel-card:hover { border-color: #52617a; }
-.channel-card.selected { border-color: var(--brand); background: rgba(255,107,53,0.06); }
-.channel-card h4 { font-size: 0.92em; margin-bottom: 4px; color: #e9edf6; }
-.channel-card p { font-size: 0.8em; color: #aeb8cc; line-height: 1.45; }
-.channel-form { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: none; }
+.channel-card { background: rgba(255,255,255,0.92); border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 18px rgba(31, 35, 41, 0.06); }
+.channel-card:hover { border-color: rgba(51,112,255,0.35); transform: translateY(-1px); box-shadow: 0 12px 24px rgba(31, 35, 41, 0.10); }
+.channel-card.selected { border-color: rgba(51,112,255,0.75); background: rgba(51,112,255,0.06); }
+.channel-card h4 { font-size: 0.92em; margin-bottom: 4px; color: var(--text); }
+.channel-card p { font-size: 0.8em; color: var(--muted); line-height: 1.45; }
+.channel-card p a { color: var(--brand); text-decoration: none; }
+.channel-card p a:hover { text-decoration: underline; }
+.channel-form { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(229, 230, 235, 0.9); display: none; }
 .channel-form.open { display: block; }
 
 .chat-card {
-  background: #162032;
+  background: rgba(255,255,255,0.92);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px;
 }
 .chat-url { color: var(--brand); font-size: 1.05em; font-weight: 700; margin-top: 6px; word-break: break-all; }
 
-.toast { position: fixed; top: 20px; right: 20px; background: #4caf50; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 0.9em; opacity: 0; transform: translateY(-10px); transition: all 0.3s; z-index: 999; }
+.toast { position: fixed; top: 20px; right: 20px; background: var(--ok); color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 0.9em; opacity: 0; transform: translateY(-10px); transition: all 0.3s; z-index: 999; box-shadow: 0 14px 34px rgba(31, 35, 41, 0.18); }
 .toast.show { opacity: 1; transform: translateY(0); }
-.toast.error { background: #f44336; }
+.toast.error { background: var(--bad); }
 
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(6, 10, 16, 0.68);
+  background: rgba(31, 35, 41, 0.45);
   display: none;
   align-items: center;
   justify-content: center;
@@ -252,12 +301,13 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
 .modal-mask.open { display: flex; }
 .modal-card {
   width: min(420px, 94vw);
-  background: linear-gradient(180deg, #172236, #121c2d);
-  border: 1px solid #3a4a67;
+  background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.98));
+  border: 1px solid var(--line);
   border-radius: 14px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.42);
+  box-shadow: var(--shadow-2);
   padding: 14px 14px 16px;
   position: relative;
+  backdrop-filter: blur(12px);
 }
 .modal-close {
   position: absolute;
@@ -265,12 +315,13 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
   top: 8px;
   border: none;
   background: transparent;
-  color: #ccd6ec;
+  color: var(--muted);
   font-size: 1.2em;
   cursor: pointer;
 }
+.modal-close:hover { color: var(--text); }
 .modal-title {
-  color: #f2f6ff;
+  color: var(--text);
   font-size: 0.98em;
   margin-bottom: 10px;
   font-weight: 700;
@@ -281,13 +332,13 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
   gap: 10px;
 }
 .qrcode-card {
-  border: 1px solid #3a4a67;
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px;
-  background: #0f1828;
+  background: rgba(255,255,255,0.92);
 }
 .qrcode-title {
-  color: #dbe6ff;
+  color: var(--text);
   font-size: 0.88em;
   margin-bottom: 6px;
 }
@@ -320,7 +371,7 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
 .qrcode-empty.show { display: block; }
 .modal-tip {
   margin-top: 10px;
-  color: #aeb8cc;
+  color: var(--muted);
   font-size: 0.82em;
   text-align: center;
 }
@@ -340,7 +391,7 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
 <body>
 <div class="container">
   <h1><span class="lobster">🦞</span> 鹭信信科技-龙虾控制台</h1>
-  <p class="subtitle">模型与 API 一体配置 · Agent 列表 · 聊天接口</p>
+  <p class="subtitle">模型与 API 一体配置 · 聊天通道 · 管理</p>
 
   <div class="status-bar">
     <div class="dot" id="statusDot"></div>
@@ -350,128 +401,152 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
     <span class="status-chip" id="chipPort">端口: -</span>
     <span class="status-chip" id="chipPid">PID: -</span>
     <span class="status-chip muted" id="chipChecked">最近检测: --</span>
+    <span class="status-chip muted" id="chipWeixinBind"><div class="" id="gatewayUrl">http://127.0.0.1:18789/#token=uclaw</div></span>
   </div>
   <div class="status-actions">
     <button class="status-btn primary" id="btnOpenDashboard" onclick="openDashboardFromStatus()">🌐 打开对话页</button>
-    <button class="status-btn" id="btnCopyDashboard" onclick="copyDashboardUrl()">📋 复制地址</button>
+    <button class="status-btn" id="btnSkillHub" onclick="openSkillHub()">🧩 安装技能（skills）</button>
     <button class="status-btn" id="btnSupportQrcode" onclick="openSupportQrcodeModal()">🛟 联系客服</button>
     <button class="status-btn" id="btnCourseDocs" onclick="openCourseDocs()">📚 教程与课程</button>
-    <button class="status-btn" id="btnWeixinBind" onclick="bindWeixin()">💬 一键绑定微信</button>
-    <button class="status-btn danger" id="btnGatewayStop" onclick="controlGateway('stop')">⏹ 一键关闭</button>
-    <button class="status-btn" id="btnGatewayRestart" onclick="controlGateway('restart')">🔄 一键重启</button>
-    <button class="status-btn" id="btnSkillHub" onclick="openSkillHub()">🧩 安装技能（skills）</button>
   </div>
 
   <div class="steps">
     <div class="step active" data-step="1" onclick="goStep(1)"><span class="num">1</span>模型与API</div>
-    <div class="step" data-step="2" onclick="goStep(2)"><span class="num">2</span>Agent列表</div>
-    <div class="step" data-step="3" onclick="goStep(3)"><span class="num">3</span>聊天接口</div>
+    <div class="step" data-step="2" onclick="goStep(2)"><span class="num">2</span>聊天通道</div>
+    <div class="step" data-step="3" onclick="goStep(3)"><span class="num">3</span>管理</div>
   </div>
 
   <div class="section active" id="step1">
     <h2>模型与 API 配置</h2>
     <p class="desc">在同一个框里完成模型选择和 API 填写。</p>
-
-    <div class="model-grid" id="modelGrid">
-      <div class="model-card" data-provider="minimax" data-base="https://api.minimaxi.com/v1" data-model="MiniMax-M2.7">
-        <span class="check">✓</span>
-        <h4>MiniMax <span class="tag hot">推荐</span><span class="tag cn">国内</span></h4>
-        <p>速度快，性价比高</p>
-        <a class="buy-link" href="https://platform.minimaxi.com/subscribe/token-plan" target="_blank">→ 获取 API Key</a>
-      </div>
-      <div class="model-card" data-provider="kimi" data-base="https://api.moonshot.cn/v1" data-model="moonshot-v1-auto">
-        <span class="check">✓</span>
-        <h4>Kimi <span class="tag cn">国内</span><span class="tag fast">快</span></h4>
-        <p>自动模型选择</p>
-        <a class="buy-link" href="https://platform.moonshot.cn/" target="_blank">→ 获取 API Key</a>
-      </div>
-      <div class="model-card" data-provider="deepseek" data-base="https://api.deepseek.com/v1" data-model="deepseek-chat">
-        <span class="check">✓</span>
-        <h4>DeepSeek <span class="tag cn">国内</span><span class="tag cheap">便宜</span></h4>
-        <p>低成本对话</p>
-        <a class="buy-link" href="https://platform.deepseek.com/" target="_blank">→ 获取 API Key</a>
-      </div>
-      <div class="model-card" data-provider="zai" data-base="" data-model="glm-5">
-        <span class="check">✓</span>
-        <h4>智谱 GLM <span class="tag cn">国内</span></h4>
-        <p>zai provider</p>
-        <a class="buy-link" href="https://open.bigmodel.cn/" target="_blank">→ 获取 API Key</a>
-      </div>
-      <div class="model-card" data-provider="qwen" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-model="qwen-turbo">
-        <span class="check">✓</span>
-        <h4>通义千问 <span class="tag cn">国内</span></h4>
-        <p>阿里云出品</p>
-        <a class="buy-link" href="https://dashscope.console.aliyun.com/" target="_blank">→ 获取 API Key</a>
-      </div>
-      <div class="model-card" data-provider="siliconflow" data-base="https://api.siliconflow.cn/v1" data-model="Qwen/Qwen2.5-72B-Instruct">
-        <span class="check">✓</span>
-        <h4>硅基流动 <span class="tag cn">国内</span></h4>
-        <p>多模型聚合</p>
-        <a class="buy-link" href="https://cloud.siliconflow.cn/" target="_blank">→ 获取 API Key</a>
-      </div>
-      <div class="model-card" data-provider="custom" data-base="" data-model="" style="grid-column: 1 / -1; border-style: dashed;">
-        <span class="check">✓</span>
-        <h4>🔧 自定义 OpenAI 兼容 API</h4>
-        <p>可填 OpenRouter / API2D / One API 等</p>
-      </div>
-       <div class="form-group">
-  <label>访问 Token（默认 uclaw）</label>
-  <input type="text" id="gatewayToken" placeholder="uclaw">
-</div>
+    <div class="model-modes" id="modelModes">
+      <div class="model-mode active" data-mode="main" onclick="goModelMode('main')"><span class="num">主</span>主模型</div>
+      <div class="model-mode" data-mode="image" onclick="goModelMode('image')"><span class="num">图</span>图片模型</div>
     </div>
 
-    <div class="form-grid">
-      <div class="form-group" id="customBaseWrap" style="display:none;">
-        <label>API 地址 (Base URL)</label>
-        <input type="text" id="customBase" placeholder="https://api.example.com/v1">
-      </div>
-      <div class="form-group" id="customModelWrap" style="display:none;">
-        <label>模型名称</label>
-        <input type="text" id="customModel" placeholder="gpt-4o">
-      </div>
-      <div class="form-group">
-        <label>API Key</label>
-        <div class="input-wrap">
-          <input type="password" id="apiKey" placeholder="sk-...">
-          <button class="toggle-pw" onclick="togglePw('apiKey')">显示</button>
+    <div class="step1-model-form-row">
+      <div class="model-grid" id="modelGrid">
+        <div class="model-card" data-provider="minimax" data-base="https://api.minimaxi.com/v1" data-model="MiniMax-M2.7">
+          <span class="check">✓</span>
+          <h4>MiniMax <span class="tag hot">推荐</span><span class="tag cn">国内</span></h4>
+          <p>速度快，性价比高
+            <a class="buy-link" href="https://platform.minimaxi.com/subscribe/token-plan" target="_blank">→ 获取 API Key</a>
+          </p>
+        </div>
+        <div class="model-card" data-provider="doubao" data-base="https://ark.cn-beijing.volces.com/api/v3" data-model="doubao-1.5-vision-pro" style="display:none;">
+          <span class="check">✓</span>
+          <h4>豆包 <span class="tag cn">国内</span><span class="tag fast">快</span></h4>
+          <p>图片理解 / 多模态（Volc Ark）
+            <a class="buy-link" href="https://console.volcengine.com/ark" target="_blank">→ 获取 API Key</a>
+          </p>
+        </div>
+        <div class="model-card" data-provider="kimi" data-base="https://api.moonshot.cn/v1" data-model="moonshot-v1-auto">
+          <span class="check">✓</span>
+          <h4>Kimi <span class="tag cn">国内</span><span class="tag fast">快</span></h4>
+          <p>自动模型选择
+            <a class="buy-link" href="https://platform.moonshot.cn/" target="_blank">→ 获取 API Key</a>
+          </p>
+        </div>
+        <div class="model-card" data-provider="deepseek" data-base="https://api.deepseek.com/v1" data-model="deepseek-chat">
+          <span class="check">✓</span>
+          <h4>DeepSeek <span class="tag cn">国内</span><span class="tag cheap">便宜</span></h4>
+          <p>低成本对话
+            <a class="buy-link" href="https://platform.deepseek.com/" target="_blank">→ 获取 API Key</a>
+          </p>
+        </div>
+        <div class="model-card" data-provider="zai" data-base="" data-model="glm-5">
+          <span class="check">✓</span>
+          <h4>智谱 GLM <span class="tag cn">国内</span></h4>
+          <p>zai provider
+            <a class="buy-link" href="https://open.bigmodel.cn/" target="_blank">→ 获取 API Key</a>
+          </p>
+        </div>
+        <div class="model-card" data-provider="qwen" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-model="qwen-turbo">
+          <span class="check">✓</span>
+          <h4>通义千问 <span class="tag cn">国内</span></h4>
+          <p>阿里云出品
+            <a class="buy-link" href="https://dashscope.console.aliyun.com/" target="_blank">→ 获取 API Key</a>
+          </p>
+        </div>
+        <div class="model-card" data-provider="siliconflow" data-base="https://api.siliconflow.cn/v1" data-model="Qwen/Qwen2.5-72B-Instruct">
+          <span class="check">✓</span>
+          <h4>硅基流动 <span class="tag cn">国内</span></h4>
+          <p>多模型聚合
+            <a class="buy-link" href="https://cloud.siliconflow.cn/" target="_blank">→ 获取 API Key</a>
+          </p>
+        </div>
+        <div class="model-card" data-provider="custom" data-base="" data-model="" style="grid-column: 1 / -1; border-style: dashed;">
+          <span class="check">✓</span>
+          <h4>🔧 自定义 OpenAI 兼容 API</h4>
+          <p>可填 OpenRouter / API2D / One API 等</p>
         </div>
       </div>
+      
+      <div class="form-grid">
+        <div id="mainModelForm">
+          <div class="form-group" id="gatewayTokenWrap">
+            <label>访问 Token（默认 uclaw）</label>
+            <input type="text" id="gatewayToken" placeholder="uclaw">
           </div>
-    <p class="hint">Key 只保存在当前 U 盘本地。</p>
+          <div class="form-group" id="customBaseWrap" style="display:none;">
+            <label>API 地址 (Base URL)</label>
+            <input type="text" id="customBase" placeholder="https://api.example.com/v1">
+          </div>
+          <div class="form-group" id="customModelWrap" style="display:none;">
+            <label>模型名称</label>
+            <input type="text" id="customModel" placeholder="gpt-4o">
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <div class="input-wrap">
+              <input type="password" id="apiKey" placeholder="sk-...">
+              <button class="toggle-pw" onclick="togglePw('apiKey')">显示</button>
+            </div>
+          </div>
+        </div>
 
-    <div class="btn-row">
-      <button class="btn btn-primary" id="btnSaveNext" onclick="saveConfigAndNext()">保存配置并下一步 →</button>
+        <div id="imageModelForm" style="display:none;">
+          <div class="form-group" id="customBaseWrapImage" style="display:none;">
+            <label>图片模型 API 地址 (Base URL)</label>
+            <input type="text" id="customBaseImage" placeholder="https://api.example.com/v1">
+          </div>
+          <div class="form-group" id="customModelWrapImage" style="display:none;">
+            <label>图片模型名称</label>
+            <input type="text" id="customModelImage" placeholder="gpt-4o-image">
+          </div>
+          <div class="form-group">
+            <label>图片模型 API Key</label>
+            <div class="input-wrap">
+              <input type="password" id="apiKeyImage" placeholder="sk-...">
+              <button class="toggle-pw" onclick="togglePw('apiKeyImage')">显示</button>
+            </div>
+          </div>
+        </div>
+        
+        <p class="hint">Key 只保存在当前 U 盘本地。</p>
+        <div class="form-group">
+          <button class="btn btn-primary" id="btnSaveNext" onclick="saveConfigAndNext()">保存配置并下一步 →</button>
+        </div>
+      </div>
     </div>
+
   </div>
 
   <div class="section" id="step2">
-    <h2>Agent 列表</h2>
-    <p class="desc">这里展示当前主 Agent 和常用 Agent 模式。</p>
-
-    <div class="agent-list" id="agentList"></div>
-
-    <div class="btn-row">
-      <button class="btn btn-secondary" onclick="goStep(1)">← 返回修改配置</button>
-      <button class="btn btn-secondary" onclick="renderAgents()">刷新 Agent 列表</button>
-      <button class="btn btn-primary" onclick="goStep(3)">下一步到聊天接口 →</button>
-    </div>
-  </div>
-
-  <div class="section" id="step3">
-    <h2>聊天接口</h2>
-    <p class="desc">恢复 Telegram / QQ Bot / 飞书 / 企业微信配置，保存后可直接打开聊天入口。</p>
-
-    <div class="chat-card">
-      <div>当前聊天入口：</div>
-      <div class="chat-url" id="gatewayUrl">http://127.0.0.1:18789/#token=uclaw</div>
-      <div class="btn-row" style="justify-content:flex-start; margin-top:12px;">
-        <button class="btn btn-primary" id="btnSaveChannels" onclick="saveChannelsAndOpen()">💾 保存聊天接口并打开聊天</button>
-        <button class="btn btn-secondary" onclick="openDashboardFromStatus()">🚀 仅打开聊天接口</button>
-        <button class="btn btn-secondary" onclick="copyDashboardUrl()">📋 复制聊天地址</button>
+    <h2 style="display: flex; justify-content: space-between;">
+      <div>
+        聊天通道
       </div>
-    </div>
-
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnSaveChannels" onclick="saveChannelsAndOpen()">💾 保存聊天接口并打开聊天</button>
+      </div>
+    </h2>
     <div class="channel-grid">
+      <div class="channel-card" data-channel="telegram" onclick="bindWeixin()">
+        <h4>💬 一键绑定微信</h4>
+        <p>一键绑定微信，无需配置。</p>
+      </div>
+
       <div class="channel-card" data-channel="telegram" onclick="toggleChannel(this, 'telegram')">
         <h4>✈️ Telegram</h4>
         <p>配置 Bot Token 后即可接入 Telegram。</p>
@@ -532,10 +607,14 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="btn-row">
-      <button class="btn btn-secondary" onclick="goStep(2)">← 返回 Agent 列表</button>
-      <button class="btn btn-secondary" onclick="viewConfig()">查看配置文件</button>
+  <div class="section" id="step3">
+    <h2>管理</h2>
+    <p class="desc">管理 OpenClaw 的运行状态和配置。</p>
+    <div class="channel-grid" style="display: flex; justify-content: space-around;margin: 20px 0 10px;">
+      <button class="status-btn danger" id="btnGatewayStop" onclick="controlGateway('stop')" style="width: 30%;">⏹ 一键关闭</button>
+    <button class="status-btn" id="btnGatewayRestart" onclick="controlGateway('restart')" style="width: 30%;">🔄 一键重启</button>
     </div>
   </div>
 </div>
@@ -569,11 +648,16 @@ input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(255,107,53,
 let selectedProvider = null;
 let selectedBase = '';
 let selectedModel = '';
+let currentModelMode = 'main';
+let selectedProviderImage = null;
+let selectedBaseImage = '';
+let selectedModelImage = '';
 let currentGatewayStatus = null;
 let currentConfig = {};
 
 const providerNameMap = {
   minimax: 'MiniMax',
+  doubao: '豆包',
   kimi: 'Kimi',
   deepseek: 'DeepSeek',
   zai: '智谱 GLM',
@@ -626,18 +710,81 @@ function goStep(n) {
   if (n === 3) syncGatewayUrl();
 }
 
+function renderModelModeTabs() {
+  document.querySelectorAll('#modelModes .model-mode').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.mode === currentModelMode);
+  });
+}
+
+function renderModelCardsVisibilityForMode() {
+  var allCards = document.querySelectorAll('#modelGrid .model-card');
+  var allowedImageProviders = { minimax: true, doubao: true };
+  allCards.forEach(function(card) {
+    var provider = card.dataset.provider;
+    if (currentModelMode === 'image') {
+      card.style.display = allowedImageProviders[provider] ? '' : 'none';
+    } else {
+      // main mode keeps original list; doubao is image-only
+      card.style.display = provider === 'doubao' ? 'none' : '';
+    }
+  });
+}
+
+function renderModelCardSelectionForMode() {
+  var provider = currentModelMode === 'image' ? selectedProviderImage : selectedProvider;
+  var cards = document.querySelectorAll('#modelGrid .model-card');
+  cards.forEach(function(c) { c.classList.remove('selected'); });
+  if (!provider) return;
+  var card = document.querySelector('#modelGrid .model-card[data-provider="' + provider + '"]');
+  if (card) card.classList.add('selected');
+}
+
+function renderCustomWrapForMode(provider) {
+  var isCustom = provider === 'custom';
+  if (currentModelMode === 'image') {
+    document.getElementById('customBaseWrapImage').style.display = isCustom ? 'block' : 'none';
+    document.getElementById('customModelWrapImage').style.display = isCustom ? 'block' : 'none';
+  } else {
+    document.getElementById('customBaseWrap').style.display = isCustom ? 'block' : 'none';
+    document.getElementById('customModelWrap').style.display = isCustom ? 'block' : 'none';
+  }
+}
+
+function goModelMode(mode) {
+  currentModelMode = (mode === 'image') ? 'image' : 'main';
+  renderModelModeTabs();
+  renderModelCardsVisibilityForMode();
+  document.getElementById('mainModelForm').style.display = currentModelMode === 'main' ? 'block' : 'none';
+  document.getElementById('imageModelForm').style.display = currentModelMode === 'image' ? 'block' : 'none';
+  var tokenWrap = document.getElementById('gatewayTokenWrap');
+  if (tokenWrap) tokenWrap.style.display = currentModelMode === 'image' ? 'none' : 'block';
+  renderModelCardSelectionForMode();
+  renderCustomWrapForMode(currentModelMode === 'image' ? selectedProviderImage : selectedProvider);
+
+  // Image mode: default-select minimax if nothing selected yet.
+  if (currentModelMode === 'image' && !selectedProviderImage) {
+    var firstImage = document.querySelector('#modelGrid .model-card[data-provider="minimax"]');
+    if (firstImage) firstImage.click();
+  }
+}
+
 function bindModelCards() {
   document.querySelectorAll('#modelGrid .model-card').forEach(function(card) {
     card.addEventListener('click', function(e) {
       if (e.target.closest('.buy-link')) return;
-      document.querySelectorAll('#modelGrid .model-card').forEach(function(c) { c.classList.remove('selected'); });
-      card.classList.add('selected');
-      selectedProvider = card.dataset.provider;
-      selectedBase = card.dataset.base || '';
-      selectedModel = card.dataset.model || '';
-      var isCustom = selectedProvider === 'custom';
-      document.getElementById('customBaseWrap').style.display = isCustom ? 'block' : 'none';
-      document.getElementById('customModelWrap').style.display = isCustom ? 'block' : 'none';
+      if (currentModelMode === 'image') {
+        selectedProviderImage = card.dataset.provider;
+        selectedBaseImage = card.dataset.base || '';
+        selectedModelImage = card.dataset.model || '';
+        renderModelCardSelectionForMode();
+        renderCustomWrapForMode(selectedProviderImage);
+      } else {
+        selectedProvider = card.dataset.provider;
+        selectedBase = card.dataset.base || '';
+        selectedModel = card.dataset.model || '';
+        renderModelCardSelectionForMode();
+        renderCustomWrapForMode(selectedProvider);
+      }
     });
   });
 }
@@ -658,7 +805,7 @@ function syncGatewayUrl() {
   var url = (currentGatewayStatus && currentGatewayStatus.dashboardUrl)
     ? currentGatewayStatus.dashboardUrl
     : 'http://127.0.0.1:18789/#token=uclaw';
-  document.getElementById('gatewayUrl').textContent = url;
+  document.getElementById('gatewayUrl').textContent = '聊天入口：' + url;
 }
 
 async function checkGateway() {
@@ -925,7 +1072,11 @@ function normalizeProviderFromConfig(cfg) {
 function fillFromConfig(cfg) {
   var provider = normalizeProviderFromConfig(cfg) || 'minimax';
   var card = document.querySelector('#modelGrid .model-card[data-provider="' + provider + '"]');
-  if (card) card.click();
+  if (card) {
+    currentModelMode = 'main';
+    renderModelModeTabs();
+    card.click();
+  }
 
   if (provider === 'zai') {
     document.getElementById('apiKey').value = (cfg.env && cfg.env.ZAI_API_KEY) ? cfg.env.ZAI_API_KEY : '';
@@ -943,6 +1094,17 @@ function fillFromConfig(cfg) {
   var token = (cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token) ? cfg.gateway.auth.token : 'uclaw';
   document.getElementById('gatewayToken').value = token;
   fillChannelsFromConfig(cfg);
+
+  // Image model config (optional, stored separately)
+  if (cfg && cfg.images && typeof cfg.images === 'object') {
+    var img = cfg.images || {};
+    selectedProviderImage = img.provider || null;
+    selectedBaseImage = img.baseUrl || img.base || '';
+    selectedModelImage = img.model || img.modelId || '';
+    document.getElementById('apiKeyImage').value = img.apiKey || '';
+    document.getElementById('customBaseImage').value = img.baseUrl || '';
+    document.getElementById('customModelImage').value = img.model || '';
+  }
 }
 
 async function loadConfig() {
@@ -1039,6 +1201,31 @@ async function saveConfigAndNext() {
       cfg.agents.defaults.model.primary = provider + '/' + modelId;
     }
 
+    // Persist image model config separately (does not alter existing main model logic).
+    var imgKey = (document.getElementById('apiKeyImage').value || '').trim();
+    var imgProvider = selectedProviderImage;
+    var imgBase = selectedBaseImage;
+    var imgModel = selectedModelImage;
+    if (imgProvider === 'custom') {
+      imgBase = (document.getElementById('customBaseImage').value || '').trim();
+      imgModel = (document.getElementById('customModelImage').value || '').trim();
+    } else {
+      // If user manually filled, prefer explicit values
+      var filledBase = (document.getElementById('customBaseImage').value || '').trim();
+      var filledModel = (document.getElementById('customModelImage').value || '').trim();
+      if (filledBase) imgBase = filledBase;
+      if (filledModel) imgModel = filledModel;
+    }
+
+    // Only write when user provided a key, or existing images config already exists.
+    if ((imgKey && imgProvider) || (cfg.images && typeof cfg.images === 'object')) {
+      if (!cfg.images || typeof cfg.images !== 'object') cfg.images = {};
+      if (imgProvider) cfg.images.provider = imgProvider;
+      if (imgBase) cfg.images.baseUrl = imgBase;
+      if (imgModel) cfg.images.model = imgModel;
+      if (imgKey) cfg.images.apiKey = imgKey;
+    }
+
     var saveRes = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1101,6 +1288,7 @@ async function saveChannelsAndOpen() {
 
 function renderAgents() {
   var list = document.getElementById('agentList');
+  if (!list) return;
   var cfg = currentConfig || {};
   var primary = (cfg.agents && cfg.agents.defaults && cfg.agents.defaults.model && cfg.agents.defaults.model.primary)
     ? cfg.agents.defaults.model.primary
@@ -1148,6 +1336,7 @@ async function viewConfig() {
 
 bindModelCards();
 ensureDefaultSelection();
+goModelMode('main');
 loadConfig();
 checkGateway();
 setInterval(checkGateway, 10000);
