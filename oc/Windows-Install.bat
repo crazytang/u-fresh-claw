@@ -158,8 +158,8 @@ if not exist "%INSTALL_TARGET%\data\.openclaw\openclaw.json" (
 )
 
 REM ---- Copy HTML pages ----
-if exist "%UCLAW_DIR%Config.html" copy "%UCLAW_DIR%Config.html" "%INSTALL_TARGET%\" >nul
-if exist "%UCLAW_DIR%U-Claw.html" copy "%UCLAW_DIR%U-Claw.html" "%INSTALL_TARGET%\" >nul
+if exist "%UCLAW_DIR%config-server\public\Config.html" copy "%UCLAW_DIR%config-server\public\Config.html" "%INSTALL_TARGET%\" >nul
+if exist "%UCLAW_DIR%config-server\public\U-Claw.html" copy "%UCLAW_DIR%config-server\public\U-Claw.html" "%INSTALL_TARGET%\" >nul
 
 REM ---- Create launch script ----
 (

@@ -263,7 +263,7 @@ function launchWeixinBind() {
 }
 
 function openSkillHub() {
-  const skillHub = path.join(ROOT_DIR, 'SkillHub.html');
+  const skillHub = path.join(__dirname, 'public', 'SkillHub.html');
   if (!fs.existsSync(skillHub)) {
     throw new Error(`SkillHub not found: ${skillHub}`);
   }
@@ -835,7 +835,7 @@ function serveStatic(reqPath, res) {
   if (reqPath === '/') {
     filePath = path.join(__dirname, 'public/index.html');
   } else if (reqPath === '/skillhub') {
-    filePath = path.join(ROOT_DIR, 'SkillHub.html');
+    filePath = path.join(__dirname, 'public', 'SkillHub.html');
   } else {
     filePath = path.join(__dirname, 'public', reqPath);
   }
