@@ -290,8 +290,8 @@ do_platforms() {
         b) echo "  Telegram: 找 @BotFather 创建机器人" ;;
         c)
             echo -e "  ${YELLOW}安装微信插件...${NC}"
-            if [ -f "$UCLAW_DIR/plugins/openclaw-weixin.tgz" ]; then
-                run_oc plugins install "$UCLAW_DIR/plugins/openclaw-weixin.tgz" 2>&1 || true
+            if [ -f "$UCLAW_DIR/plugins/openclaw-weixin.zip" ]; then
+                run_oc plugins install "$UCLAW_DIR/plugins/openclaw-weixin.zip" 2>&1 || true
             else
                 run_oc plugins install @tencent-weixin/openclaw-weixin 2>&1 || true
             fi

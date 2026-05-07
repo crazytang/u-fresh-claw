@@ -199,8 +199,8 @@ if "%ch_choice%"=="c" (
     echo.
     echo   Installing WeChat plugin...
     cd /d "%CORE_DIR%"
-    if exist "%UCLAW_DIR%plugins\openclaw-weixin.tgz" (
-        "%NODE_BIN%" "%OPENCLAW_MJS%" plugins install "%UCLAW_DIR%plugins\openclaw-weixin.tgz"
+    if exist "%UCLAW_DIR%plugins\openclaw-weixin.zip" (
+        "%NODE_BIN%" "%OPENCLAW_MJS%" plugins install "%UCLAW_DIR%plugins\openclaw-weixin.zip"
     ) else (
         "%NODE_BIN%" "%OPENCLAW_MJS%" plugins install @tencent-weixin/openclaw-weixin
     )

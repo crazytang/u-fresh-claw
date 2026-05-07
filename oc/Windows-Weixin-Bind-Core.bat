@@ -27,7 +27,7 @@ set "PLUGIN_QRCODE_PKG=%PLUGIN_DIR%\node_modules\qrcode-terminal\package.json"
 set "PLUGIN_ZOD_PKG=%PLUGIN_DIR%\node_modules\zod\package.json"
 set "TMP_BIN_DIR=%TEMP%\uclaw-open-bind-bin"
 set "WEIXIN_PLUGIN_PKG=@tencent-weixin/openclaw-weixin"
-set "LOCAL_PLUGIN_TGZ=%SCRIPT_DIR%\plugins\openclaw-weixin.tgz"
+set "LOCAL_PLUGIN_TGZ=%SCRIPT_DIR%\plugins\openclaw-weixin.zip"
 
 if not exist "%NODE_BIN%" goto :err_node
 if not exist "%OPENCLAW_MJS%" goto :err_openclaw
@@ -182,7 +182,7 @@ set "CONFIG_JS=%TEMP%\uclaw-enable-weixin-plugin.js"
   echo cfg.plugins.entries = cfg.plugins.entries ^|^| {};
   echo cfg.plugins.installs = cfg.plugins.installs ^|^| {};
   echo cfg.plugins.entries['openclaw-weixin'] = { enabled: true };
-  echo cfg.plugins.installs['openclaw-weixin'] = { source: 'archive', sourcePath: 'plugins/openclaw-weixin.tgz', installPath, version: '2.1.8', installedAt: new Date^(^).toISOString^(^) };
+  echo cfg.plugins.installs['openclaw-weixin'] = { source: 'archive', sourcePath: 'plugins/openclaw-weixin.zip', installPath, version: '2.1.8', installedAt: new Date^(^).toISOString^(^) };
   echo cfg.meta = cfg.meta ^|^| {};
   echo cfg.meta.lastTouchedAt = new Date^(^).toISOString^(^);
   echo fs.mkdirSync(path.dirname(p^), { recursive: true }^);
